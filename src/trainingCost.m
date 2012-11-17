@@ -31,7 +31,7 @@ a2 = params.f(t1 + t2);
 output  = W{2} * a2;
 
 % Extract columns corresponding to "good" combinations
-pgood = data.p(:, data.goodIndices);
+pgood = [ data.p1(:, data.goodIndices); data.imgs ];
 a2good = a2(:, data.goodIndices);
 outputGood = output(data.goodIndices);
 
@@ -77,8 +77,9 @@ gradb1 = sum(dmask.*repmat(-deltagood, 1, numCategories) + dmask.*deltabad, 2);
 gradW1 = zeros(size(W{1}));
 for j = 1:numCategories
     range  = (j-1)*numImages+1:j*numImages;
-    pmask  = repmat(keepIndices(range)', 1, size(data.p, 1));
-    gradW1 = gradW1 - deltagood*(pmask.*pgood') + deltabad(:, range)*(pmask.*data.p(:, range)');
+    pmask  = repmat(keepIndices(range)', 1, size(data.p1, 1) + size(data.imgs, 1));
+    p      = [ data.p1(:, range); data.imgs ];
+    gradW1 = gradW1 - deltagood*(pmask.*pgood') + deltabad(:, range)*(pmask.*p');
 end
 
 %% Update gradients
