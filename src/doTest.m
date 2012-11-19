@@ -3,29 +3,25 @@ function [ guessedCategoriesDebug, accuracy ] = doTest( images, categories, cate
 [Wt, bt] = stack2param(theta, trainParams.decodeInfo);
 numImages = size(images, 2);
 numCategories = size(wordTable, 2);
-guessedCategories = zeros(size(categories));
-guessedCategoriesDebug = zeros(size(categories, 1), size(categoryLabels, 1) + 2);
+guessedCategoriesDebug = zeros(size(categoryLabels, 1), numImages);
 confusion = zeros(length(categoryLabels), length(categoryLabels));
 numCorrect = 0;
-for i = 1:numImages
-    maxscore = -Inf;
-    % For each category, run and pick max score
-    for j = 1:numCategories
-        p = [wordTable(:, j); images(:, i)];
-        score = Wt{2} *  trainParams.f(bsxfun(@plus, Wt{1} * p, bt{1}));
-        guessedCategoriesDebug(i, j) = score;
-        if score > maxscore
-            maxscore = score;
-            guessedCategories(i) = j;
-        end
+
+% For each category, run and pick max score
+for j = 1:numCategories
+    p = [repmat(wordTable(:, j), 1, numImages); images];
+    scores = Wt{2} *  trainParams.f(bsxfun(@plus, Wt{1} * p, bt{1}));
+    guessedCategoriesDebug(j, :) = scores;
+end
+
+[ ~, guessedCategories ] = max(guessedCategoriesDebug);
+
+for actual = 1:numCategories
+    guessesForCateg = guessedCategories(categories == actual);
+    for guessed = 1:numCategories
+        confusion(actual, guessed) = sum(guessesForCateg == guessed);
     end
-    actual = categories(i);
-    guessed = guessedCategories(i);
-    guessedCategoriesDebug(i, end-1:end) = [ actual guessed ];
-    confusion(actual, guessed) = confusion(actual, guessed) + 1;
-    if actual == guessed
-        numCorrect = numCorrect + 1;
-    end
+    numCorrect = numCorrect + confusion(actual, actual);
 end
 
 accuracy = numCorrect / numImages;
