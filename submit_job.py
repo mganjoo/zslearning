@@ -33,7 +33,7 @@ for iter in [ 3, 4, 6, 8 ]:
         'outputPath':      outputPath
     }
 
-    qsubCommand = "cat <<EOF | qsub -N {0} -o {1} -e {2}{3}EOF"
+    qsubCommand = "cat <<EOF | qsub -V -m be -M mganjoo@stanford.edu -N {0} -o {1} -e {2}{3}EOF"
 
     os.system(qsubCommand.format(jobName, outputPath + "out", outputPath + "err", matlabCommand.format(**arguments)))
     jobNum = jobNum + 1
