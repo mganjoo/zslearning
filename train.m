@@ -4,7 +4,7 @@ addpath toolbox/minFunc/;
 %% Model Parameters
 fields = {{'wordDataset',         'icml'}; % type of embedding dataset to use ('icml', 'senna', 'turian.50')
           {'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'maxPass',             40};     % maximum number of passes through training data
+          {'maxPass',             60};     % maximum number of passes through training data
           {'maxIter',             5};      % maximum number of minFunc iterations on a batch
           {'hiddenSize',          100};    % number of units in hidden layer
           {'cReg',                1E-3};   % regularization parameter (weight decay)
@@ -21,6 +21,9 @@ for i = 1:length(fields)
     end
 end
 
+disp('Parameters:');
+disp(trainParams);
+
 % Fix the random number generator if needed
 if trainParams.fixRandom == true
     RandStream.setGlobalStream(RandStream('mcg16807','Seed', 0));
@@ -28,7 +31,7 @@ end
 
 trainParams.f = @tanh;             % function to use in the neural network activations
 trainParams.f_prime = @tanh_prime; % derivative of f
-trainParams.saveEvery = 4;         % number of passes after which we need to do intermediate passes
+trainParams.saveEvery = 10;        % number of passes after which we need to do intermediate saves
 
 % minFunc options
 options.Method = 'lbfgs';
