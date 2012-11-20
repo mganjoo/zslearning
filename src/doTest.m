@@ -1,32 +1,51 @@
-function [ guessedCategoriesDebug, accuracy ] = doTest( images, categories, categoryLabels, wordTable, theta, trainParams )
+function [ guessedCategoriesDebug, results ] = doTest( images, categories, categoryNames, wordTable, theta, trainParams )
 
 [Wt, bt] = stack2param(theta, trainParams.decodeInfo);
 numImages = size(images, 2);
 numCategories = size(wordTable, 2);
-guessedCategoriesDebug = zeros(size(categoryLabels, 1), numImages);
-confusion = zeros(length(categoryLabels), length(categoryLabels));
-numCorrect = 0;
+wordVectorLength  = size(wordTable, 1);
 
-% For each category, run and pick max score
-for j = 1:numCategories
-    p = [repmat(wordTable(:, j), 1, numImages); images];
-    scores = Wt{2} *  trainParams.f(bsxfun(@plus, Wt{1} * p, bt{1}));
-    guessedCategoriesDebug(j, :) = scores;
-end
+% Weight vectors for word and image components
+W1_word = Wt{1}(:, 1:wordVectorLength);
+W1_image = Wt{1}(:, wordVectorLength+1:end);
 
-[ ~, guessedCategories ] = max(guessedCategoriesDebug);
+% Input corresponding to word components
+z2words = W1_word * wordTable;
+% Input corresponding to image components
+z2image = bsxfun(@plus, W1_image * images, bt{1});
 
+% [ [ z_w_i repeated m times for each image ] for all k categories ]
+t1 = z2words(:, reshape(repmat(1:numCategories, numImages, 1), 1, []));
+% [ z_im_1 .. z_im_m (all images) ] repeated k times for each category
+t2 = repmat(z2image, 1, numCategories);
+% a2 is the set of all word-image combinations (activated by f)
+a2 = trainParams.f(t1 + t2);
+
+output  = Wt{2} * a2;
+outputGrouped = reshape(output, numImages, [])';
+
+[ ~, guessedCategories ] = max(outputGrouped);
+
+guessedCategoriesDebug = [ outputGrouped; categories; guessedCategories ];
+
+% Calculate scores
+confusion = zeros(numCategories, numCategories);
 for actual = 1:numCategories
-    guessesForCateg = guessedCategories(categories == actual);
+    guessesForCategory = guessedCategories(categories == actual);
     for guessed = 1:numCategories
-        confusion(actual, guessed) = sum(guessesForCateg == guessed);
+        confusion(actual, guessed) = sum(guessesForCategory == guessed);
     end
-    numCorrect = numCorrect + confusion(actual, actual);
 end
 
-accuracy = numCorrect / numImages;
-disp(['Accuracy: ' num2str(accuracy)]);
-displayConfusionMatrix(confusion, categoryLabels);
+truePos = diag(confusion); % true positives, column vector
+results.accuracy = sum(truePos) / numImages;
+results.avgPrecision = mean(truePos ./ sum(confusion, 2));
+results.avgRecall = mean(truePos' ./ sum(confusion, 1));
+
+disp(['Accuracy: ' num2str(results.accuracy)]);
+disp(['Averaged precision: ' num2str(results.avgPrecision)]);
+disp(['Averaged recall: ' num2str(results.avgRecall)]);
+displayConfusionMatrix(confusion, categoryNames);
 
 end
 
