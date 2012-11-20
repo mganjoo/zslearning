@@ -19,7 +19,7 @@ EOD
 """
 
 jobNum = 1
-for iter in [ 3, 4, 5, 6 ]:
+for iter in [ 3, 4, 6, 8 ]:
     jobName = "vsm{0:03d}".format(jobNum)
     outputPath = PROJECT_PATH + "savedParams-%s/" % jobName
 

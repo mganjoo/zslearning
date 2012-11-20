@@ -131,7 +131,7 @@ for passj = 1:trainParams.maxPass
     
     % intermediate saves
     if mod(passj, trainParams.saveEvery) == 0
-        filename = sprintf('%s/params_pass_%d.mat', trainParams.outputPath, trainParams.batchFilePrefix, passj);
+        filename = sprintf('%s/params_pass_%d.mat', trainParams.outputPath, passj);
         save(filename, 'theta', 'trainParams');
     end
     
