@@ -7,6 +7,6 @@ disp('Creating training set');
 makeFeatureBatches(X.trainXCs, Y.trainY, 5, { 'cat', 'truck' });
 
 disp('Creating mini-training set');
-makeFeatureBatches(X.trainXCs, Y.trainY, 5, { 'cat', 'truck' }, 4, 'mini_batch');
+makeFeatureBatches(X.trainXCs, Y.trainY, 5, { 'cat', 'truck' }, 'mini_batch', 4);
 
 clear X Y;
