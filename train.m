@@ -2,7 +2,8 @@ addpath toolbox/;
 addpath toolbox/minFunc/;
 
 %% Model Parameters
-fields = {{'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
+fields = {{'wordDataset',         'icml'}; % type of embedding dataset to use ('icml', 'senna', 'turian.50')
+          {'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'maxPass',             40};     % maximum number of passes through training data
           {'maxIter',             5};      % maximum number of minFunc iterations on a batch
           {'hiddenSize',          100};    % number of units in hidden layer
@@ -49,14 +50,15 @@ trainParams.imageColumnSize = size(imgs, 1); % the length of the column represen
 
 %% Load word representations
 disp('Loading word representations');
-load('wordrep/wordreps_orig.mat', 'oWe');
-load('wordrep/vocab.mat', 'vocab');
-trainParams.embeddingSize = size(oWe, 1);
+ee = load(['word_data/' trainParams.wordDataset '/embeddings.mat']);
+vv = load(['word_data/' trainParams.wordDataset '/vocab.mat']);
+trainParams.embeddingSize = size(ee.embeddings, 1);
 wordTable = zeros(trainParams.embeddingSize, length(categoryNames));
 for categoryIndex = 1:length(categoryNames)
-    icategoryWord = find(ismember(vocab, categoryNames(categoryIndex)) == true);
-    wordTable(:, categoryIndex) = oWe(:, icategoryWord);
+    icategoryWord = find(ismember(vv.vocab, categoryNames(categoryIndex)) == true);
+    wordTable(:, categoryIndex) = ee.embeddings(:, icategoryWord);
 end
+clear ee vv;
 
 %% First check the gradient of our minimizer
 debugImgs = rand(2, 5);
@@ -137,5 +139,5 @@ end
 
 %% Save learned parameters
 disp('Saving final learned parameters');
-save(sprintf('%s/params_final.mat', trainParams.outputPath),'theta','trainParams');
+save(sprintf('%s/params_final.mat', trainParams.outputPath),'theta', 'trainParams');
 save(sprintf('%s/statistics.mat', trainParams.outputPath), 'statistics');

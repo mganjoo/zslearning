@@ -1,4 +1,4 @@
-function [] = makeFeatureBatches(trainX, trainY, numBatches, excludedCategories, numPerCategory, prefix)
+function [] = makeFeatureBatches(trainX, trainY, numBatches, excludedCategories, prefix, numPerCategory)
 
 % Load categories
 b = load('image_data/cifar-10-batches-mat/batches.meta.mat');
@@ -12,9 +12,9 @@ assert(mod(TOTAL_IMAGES / numBatches, totalCategories) == 0);
 MAX_NUM_PER_CATEGORY = TOTAL_IMAGES / numBatches / totalCategories;
 
 if nargin < 6
-    prefix = 'features_batch';
+    numPerCategory = MAX_NUM_PER_CATEGORY;
     if nargin < 5
-        numPerCategory = MAX_NUM_PER_CATEGORY;
+        prefix = 'default_batch';
         if nargin < 4
             excludedCategories = {};
         else
