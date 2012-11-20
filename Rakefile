@@ -7,7 +7,7 @@
 # Configuration information
 CIFAR_FILE      = "cifar-10-matlab.tar.gz"
 CIFAR_URL       = "http://www.cs.toronto.edu/~kriz/#{CIFAR_FILE}"
-FEATURE_SSH_URL = "corn.stanford.edu:/mnt/glusterfs/mganjoo/data/"
+IMAGE_SSH_URL = "corn.stanford.edu:/mnt/glusterfs/mganjoo/image_data/"
 TRAINX_FILENAME = "trainX.mat"
 TRAINY_FILENAME = "trainY.mat"
 
