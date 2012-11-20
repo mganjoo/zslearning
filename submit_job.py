@@ -2,10 +2,12 @@
 
 import os
 
-matlab_command = """
+PROJECT_PATH = '/afs/ir/users/m/g/mganjoo/projects/vsm-learning/'
+
+matlabCommand = """
 module load MATLAB-R2012b
 matlab -nodesktop <<EOD
-cd /afs/ir/users/m/g/mganjoo/projects/vsm-learning;
+cd {projectPath:s};
 trainParams.wordDataset     = {wordDataset!r};
 trainParams.batchFilePrefix = {batchFilePrefix!r};
 trainParams.maxPass         = {maxPass:d};
@@ -16,9 +18,10 @@ train;
 EOD
 """
 
-job_num = 1
+jobNum = 1
 for iter in [ 3, 4, 5, 6 ]:
-    job_name = "vsm{0:03d}".format(job_num)
+    jobName = "vsm{0:03d}".format(jobNum)
+    outputPath = PROJECT_PATH + "savedParams-%s/" % jobName
 
     arguments = {
         'wordDataset':     'icml',
@@ -26,8 +29,11 @@ for iter in [ 3, 4, 5, 6 ]:
         'maxPass':         70,
         'maxIter':         iter,
         'cReg':            1E-3,
-        'outputPath':      'savedParams-%s' % job_name
+        'projectPath':     PROJECT_PATH,
+        'outputPath':      outputPath
     }
 
-    os.system("cat <<EOF | qsub -N {0}{1}EOF".format(job_name, matlab_command.format(**arguments)))
-    job_num = job_num + 1
+    qsubCommand = "cat <<EOF | qsub -N {0} -o {1} -e {2}{3}EOF"
+
+    os.system(qsubCommand.format(jobName, outputPath + "out", outputPath + "err", matlabCommand.format(**arguments)))
+    jobNum = jobNum + 1
