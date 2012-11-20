@@ -9,10 +9,10 @@ else
 end
 
 % deep layers
-W = cell(length(trainParams.layers)+1, 1);
-b = cell(length(trainParams.layers), 1); % no bias at last layer
+W = cell(2, 1);
+b = cell(1, 1); % no bias at last layer
 
-layers = [inputSize trainParams.layers 1];
+layers = [inputSize trainParams.hiddenSize 1];
 r = sqrt(6) / sqrt(sum(layers));
 for i = 1:(length(layers)-1)
     W{i} = rand(layers(i+1), layers(i)) * 2*r-r;

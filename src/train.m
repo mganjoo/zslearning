@@ -2,19 +2,19 @@ addpath ../toolbox/;
 addpath ../toolbox/minFunc/;
 
 %% Model Parameters
-fields = {{'embeddingSize',       50};     % dimension of the word embeddings
-          {'layers',              100};    % number of units in each hidden layer (by default we have only 1 layer, so this is just a real number)
-          {'batchSize',           8000};   % number of windows to use in each mini-batch during training
-          {'numBatches',          4};      % number of batches used in training (note: (n+1)th batch will be used for validation)
+fields = {{'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'maxPass',             40};     % maximum number of passes through training data
           {'maxIter',             5};      % maximum number of minFunc iterations on a batch
+          {'hiddenSize',          100};    % number of units in hidden layer
+          {'cReg',                1E-3};   % regularization parameter (weight decay)
           {'fixRandom',           false};  % whether to fix the random number generator
+          {'outputPath',          '../savedParams'}; % the path to output files to
 };
 
 % Load existing model parameters, if they exist
 for i = 1:length(fields)
     if exist('trainParams','var') && isfield(trainParams,fields{i}{1})
-        disp(['Warning, we use the previously defined parameter ' fields{i}{1}])
+        disp(['Using the previously defined parameter ' fields{i}{1}])
     else
         trainParams.(fields{i}{1}) = fields{i}{2};
     end
@@ -27,7 +27,6 @@ end
 
 trainParams.f = @tanh;             % function to use in the neural network activations
 trainParams.f_prime = @tanh_prime; % derivative of f
-trainParams.lambda = 1E-3;         % weight decay parameter
 trainParams.saveEvery = 4;         % number of passes after which we need to do intermediate passes
 
 % minFunc options
@@ -36,14 +35,15 @@ options.display = 'on';
 options.MaxIter = trainParams.maxIter;
 
 % Additional options
-batchFilePrefix = 'features_batch'; % could be features_batch or mini_batch
 batchFilePath   = '../image_data/cifar-10-features';
-assert(trainParams.numBatches >= 1);
-numBatches = trainParams.numBatches;
+files = dir([batchFilePath '/' trainParams.batchFilePrefix '*.mat']);
+numBatches = length(files) - 1;
+assert(numBatches >= 1, 'Must have at least two batch files (one for training, one for validation)');
+clear files;
 
 %% Load first batch of training images
 disp('Loading first batch of training images and initializing parameters');
-[imgs, categories, categoryNames] = loadCIFAR10TrainBatch(batchFilePrefix, 1, batchFilePath);
+[imgs, categories, categoryNames] = loadCIFAR10TrainBatch(trainParams.batchFilePrefix, 1, batchFilePath);
 numCategories = length(categoryNames);
 trainParams.imageColumnSize = size(imgs, 1); % the length of the column representation of a raw image
 
@@ -51,8 +51,8 @@ trainParams.imageColumnSize = size(imgs, 1); % the length of the column represen
 disp('Loading word representations');
 load('../wordrep/wordreps_orig.mat', 'oWe');
 load('../wordrep/vocab.mat', 'vocab');
-wordVectorLength = size(oWe, 1);
-wordTable = zeros(wordVectorLength, length(categoryNames));
+trainParams.embeddingSize = size(oWe, 1);
+wordTable = zeros(trainParams.embeddingSize, length(categoryNames));
 for categoryIndex = 1:length(categoryNames)
     icategoryWord = find(ismember(vocab, categoryNames(categoryIndex)) == true);
     wordTable(:, categoryIndex) = oWe(:, icategoryWord);
@@ -70,28 +70,31 @@ debugOptions.DerivativeCheck = 'on';
 debugOptions.maxIter = 1;
 debugParams = struct;
 debugParams.inputSize = 4;
-debugParams.layers = 5;
+debugParams.hiddenSize = 5;
 debugParams.f = trainParams.f;
 debugParams.f_prime = trainParams.f_prime;
-debugParams.lambda = 1E-3;
+debugParams.cReg = 1E-3;
 [debugTheta, debugParams.decodeInfo] = initializeParameters(debugParams);
 [~, ~, ~, ~] = minFunc( @(p) trainingCost(p, dataToUse, debugParams), debugTheta, debugOptions);
 
 %% Load validation batch
 disp('Loading validation batch');
-[validImgs, validCategories, validCategoryNames] = loadCIFAR10TrainBatch(batchFilePrefix, numBatches+1, batchFilePath);
+[validImgs, validCategories, validCategoryNames] = loadCIFAR10TrainBatch(trainParams.batchFilePrefix, numBatches+1, batchFilePath);
 
 %% Initialize actual weights
 disp('Initializing parameters');
 [theta, trainParams.decodeInfo] = initializeParameters(trainParams);
 
-if not(exist('../savedParams', 'dir'))
-    mkdir('../savedParams');
+if not(exist(trainParams.outputPath, 'dir'))
+    mkdir(trainParams.outputPath);
 end
 
 %% Begin batches of training
 display(['Number of batches: ' num2str(numBatches)]);
-costAfterBatch = zeros(1, numBatches * trainParams.maxPass);
+statistics.costAfterBatch = zeros(1, numBatches * trainParams.maxPass);
+statistics.accuracies = zeros(1, trainParams.maxPass);
+statistics.avgPrecisions = zeros(1, trainParams.maxPass);
+statistics.avgRecalls = zeros(1, trainParams.maxPass);
 for passj = 1:trainParams.maxPass
     for batchj = 1:numBatches
         dataToUse = prepareData(imgs, categories, wordTable);
@@ -100,7 +103,7 @@ for passj = 1:trainParams.maxPass
         fprintf('Pass %d, batch %d\n', passj, batchj);
         % optimize and gather statistics
         [theta, cost, ~, output] = minFunc( @(p) trainingCost(p, dataToUse, trainParams), theta, options);
-        costAfterBatch(1, (passj-1) * trainParams.maxPass + batchj) = cost;
+        statistics.costAfterBatch(1, (passj-1) * trainParams.maxPass + batchj) = cost;
         
         % test on current training batch
         doTest(dataToUse.imgs, dataToUse.categories, categoryNames, wordTable, theta, trainParams);
@@ -111,25 +114,28 @@ for passj = 1:trainParams.maxPass
             nextBatch = 1;
         end
         
-        [imgs, categories, categoryNames] = loadCIFAR10TrainBatch(batchFilePrefix, nextBatch, batchFilePath);
+        [imgs, categories, categoryNames] = loadCIFAR10TrainBatch(trainParams.batchFilePrefix, nextBatch, batchFilePath);
     end
     % test on validation batch
     fprintf('----------------------------------------\n');
     fprintf('Validation after pass %d\n', passj);
-    [ ~, accuracy ] = doTest(validImgs, validCategories, categoryNames, wordTable, theta, trainParams);
+    [ ~, results ] = doTest(validImgs, validCategories, categoryNames, wordTable, theta, trainParams);
+    statistics.accuracies(passj) = results.accuracy;
+    statistics.avgPrecisions(passj) = results.avgPrecision;
+    statistics.avgRecalls(passj) = results.avgRecall;
     
     % intermediate saves
     if mod(passj, trainParams.saveEvery) == 0
-        filename = sprintf('../savedParams/params_pass_%d.mat', passj);
+        filename = sprintf('%s/params_pass_%d.mat', trainParams.outputPath, trainParams.batchFilePrefix, passj);
         save(filename, 'theta', 'trainParams');
     end
     
-    if accuracy >= 0.7
+    if results.accuracy >= 0.7
         break;
     end
 end
 
 %% Save learned parameters
 disp('Saving final learned parameters');
-save('../savedParams/params_final.mat','theta','trainParams');
-save('../savedParams/trainingStatistics.mat', 'costAfterBatch');
+save(sprintf('%s/params_final.mat', trainParams.outputPath),'theta','trainParams');
+save(sprintf('%s/statistics.mat', trainParams.outputPath), 'statistics');
