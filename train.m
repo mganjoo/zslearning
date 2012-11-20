@@ -108,7 +108,7 @@ for passj = 1:trainParams.maxPass
         fprintf('Pass %d, batch %d\n', passj, batchj);
         % optimize and gather statistics
         [theta, cost, ~, output] = minFunc( @(p) trainingCost(p, dataToUse, trainParams), theta, options);
-        statistics.costAfterBatch(1, (passj-1) * trainParams.maxIter + batchj) = cost;
+        statistics.costAfterBatch(1, (passj-1) * numBatches + batchj) = cost;
         
         % test on current training batch
         doEvaluate(dataToUse.imgs, dataToUse.categories, categoryNames, wordTable, theta, trainParams);
