@@ -1,5 +1,5 @@
-addpath ../toolbox/;
-addpath ../toolbox/minFunc/;
+addpath toolbox/;
+addpath toolbox/minFunc/;
 
 %% Model Parameters
 fields = {{'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
@@ -8,7 +8,7 @@ fields = {{'batchFilePrefix',     'default_batch'}; % use this to choose differe
           {'hiddenSize',          100};    % number of units in hidden layer
           {'cReg',                1E-3};   % regularization parameter (weight decay)
           {'fixRandom',           false};  % whether to fix the random number generator
-          {'outputPath',          '../savedParams'}; % the path to output files to
+          {'outputPath',          'savedParams'}; % the path to output files to
 };
 
 % Load existing model parameters, if they exist
@@ -35,7 +35,7 @@ options.display = 'on';
 options.MaxIter = trainParams.maxIter;
 
 % Additional options
-batchFilePath   = '../image_data/cifar-10-features';
+batchFilePath   = 'image_data/cifar-10-features';
 files = dir([batchFilePath '/' trainParams.batchFilePrefix '*.mat']);
 numBatches = length(files) - 1;
 assert(numBatches >= 1, 'Must have at least two batch files (one for training, one for validation)');
@@ -43,14 +43,14 @@ clear files;
 
 %% Load first batch of training images
 disp('Loading first batch of training images and initializing parameters');
-[imgs, categories, categoryNames] = loadCIFAR10TrainBatch(trainParams.batchFilePrefix, 1, batchFilePath);
+[imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, 1, batchFilePath);
 numCategories = length(categoryNames);
 trainParams.imageColumnSize = size(imgs, 1); % the length of the column representation of a raw image
 
 %% Load word representations
 disp('Loading word representations');
-load('../wordrep/wordreps_orig.mat', 'oWe');
-load('../wordrep/vocab.mat', 'vocab');
+load('wordrep/wordreps_orig.mat', 'oWe');
+load('wordrep/vocab.mat', 'vocab');
 trainParams.embeddingSize = size(oWe, 1);
 wordTable = zeros(trainParams.embeddingSize, length(categoryNames));
 for categoryIndex = 1:length(categoryNames)
@@ -79,7 +79,7 @@ debugParams.cReg = 1E-3;
 
 %% Load validation batch
 disp('Loading validation batch');
-[validImgs, validCategories, validCategoryNames] = loadCIFAR10TrainBatch(trainParams.batchFilePrefix, numBatches+1, batchFilePath);
+[validImgs, validCategories, validCategoryNames] = loadTrainBatch(trainParams.batchFilePrefix, numBatches+1, batchFilePath);
 
 %% Initialize actual weights
 disp('Initializing parameters');
@@ -106,7 +106,7 @@ for passj = 1:trainParams.maxPass
         statistics.costAfterBatch(1, (passj-1) * trainParams.maxPass + batchj) = cost;
         
         % test on current training batch
-        doTest(dataToUse.imgs, dataToUse.categories, categoryNames, wordTable, theta, trainParams);
+        doEvaluate(dataToUse.imgs, dataToUse.categories, categoryNames, wordTable, theta, trainParams);
                 
         if batchj < numBatches
             nextBatch = batchj + 1;
@@ -114,12 +114,12 @@ for passj = 1:trainParams.maxPass
             nextBatch = 1;
         end
         
-        [imgs, categories, categoryNames] = loadCIFAR10TrainBatch(trainParams.batchFilePrefix, nextBatch, batchFilePath);
+        [imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, nextBatch, batchFilePath);
     end
     % test on validation batch
     fprintf('----------------------------------------\n');
     fprintf('Validation after pass %d\n', passj);
-    [ ~, results ] = doTest(validImgs, validCategories, categoryNames, wordTable, theta, trainParams);
+    [ ~, results ] = doEvaluate(validImgs, validCategories, categoryNames, wordTable, theta, trainParams);
     statistics.accuracies(passj) = results.accuracy;
     statistics.avgPrecisions(passj) = results.avgPrecision;
     statistics.avgRecalls(passj) = results.avgRecall;

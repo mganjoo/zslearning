@@ -1,7 +1,7 @@
 function [] = makeFeatureBatches(trainX, trainY, numBatches, excludedCategories, numPerCategory, prefix)
 
 % Load categories
-b = load('../image_data/cifar-10-batches-mat/batches.meta.mat');
+b = load('image_data/cifar-10-batches-mat/batches.meta.mat');
 categoryNames = b.label_names;
 
 % CIFAR constants (do not modify)
@@ -49,14 +49,14 @@ for i = 1:totalCategories
 end
 
 % Create directory if it doesn't exist
-if not(exist('../image_data/cifar-10-features', 'dir'))
-    mkdir('../image_data/cifar-10-features');
+if not(exist('image_data/cifar-10-features', 'dir'))
+    mkdir('image_data/cifar-10-features');
 end
 
 for i = 1:numBatches
     batches{i} = batches{i}(randperm(length(batches{i})));
     fprintf('Output batch %d\n', i);
-    t = matfile(sprintf('../image_data/cifar-10-features/%s_%d.mat', prefix, i));
+    t = matfile(sprintf('image_data/cifar-10-features/%s_%d.mat', prefix, i));
     t.trainX = trainX(:, batches{i});
     trainYc = arrayfun(@(x) find(categorySet == x), trainY(:, batches{i}));
     t.trainY = trainYc;
