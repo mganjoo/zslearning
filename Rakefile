@@ -13,8 +13,8 @@ CIFAR_FILE      = "cifar-10-matlab.tar.gz"
 CIFAR_URL       = "http://www.cs.toronto.edu/~kriz/#{CIFAR_FILE}"
 DATA_LOCAL_URL  = "/mnt/glusterfs/mganjoo/"
 DATA_SSH_URL    = "corn.stanford.edu:#{DATA_LOCAL_URL}"
-TRAINX_FILENAME = "trainX.mat"
-TRAINY_FILENAME = "trainY.mat"
+TRAIN_FILENAME = "train.mat"
+TEST_FILENAME = "test.mat"
 
 # File and directory names
 IMAGE_DATA_DIR  = "image_data"
@@ -49,13 +49,13 @@ task :download_image_set => IMAGE_DATA_DIR do
             `wget #{CIFAR_URL}`
         end
         `tar -xzf #{CIFAR_FILE}`
-        if !File.exist? TRAINX_FILENAME
-            puts "Getting trainX data"
-            `scp #{DATA_SSH_URL}#{IMAGE_DATA_DIR}/#{TRAINX_FILENAME} .`
+        if !File.exist? TRAIN_FILENAME
+            puts "Getting train data"
+            `scp #{DATA_SSH_URL}#{IMAGE_DATA_DIR}/#{TRAIN_FILENAME} .`
         end
-        if !File.exist? TRAINY_FILENAME
-            puts "Getting trainY data"
-            `scp #{DATA_SSH_URL}#{IMAGE_DATA_DIR}/#{TRAINY_FILENAME} .`
+        if !File.exist? TEST_FILENAME
+            puts "Getting test data"
+            `scp #{DATA_SSH_URL}#{IMAGE_DATA_DIR}/#{TEST_FILENAME} .`
         end
     end
 end

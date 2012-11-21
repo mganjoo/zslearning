@@ -58,7 +58,7 @@ vv = load(['word_data/' trainParams.wordDataset '/vocab.mat']);
 trainParams.embeddingSize = size(ee.embeddings, 1);
 wordTable = zeros(trainParams.embeddingSize, length(categoryNames));
 for categoryIndex = 1:length(categoryNames)
-    icategoryWord = find(ismember(vv.vocab, categoryNames(categoryIndex)) == true);
+    icategoryWord = ismember(vv.vocab, categoryNames(categoryIndex)) == true;
     wordTable(:, categoryIndex) = ee.embeddings(:, icategoryWord);
 end
 clear ee vv;
@@ -111,7 +111,7 @@ for passj = 1:trainParams.maxPass
         statistics.costAfterBatch(1, (passj-1) * numBatches + batchj) = cost;
         
         % test on current training batch
-        doEvaluate(dataToUse.imgs, dataToUse.categories, categoryNames, wordTable, theta, trainParams);
+        doEvaluate(dataToUse.imgs, dataToUse.categories, categoryNames, categoryNames, wordTable, theta, trainParams);
                 
         if batchj < numBatches
             nextBatch = batchj + 1;
@@ -124,7 +124,7 @@ for passj = 1:trainParams.maxPass
     % test on validation batch
     fprintf('----------------------------------------\n');
     fprintf('Validation after pass %d\n', passj);
-    [ ~, results ] = doEvaluate(validImgs, validCategories, categoryNames, wordTable, theta, trainParams);
+    [ ~, results ] = doEvaluate(validImgs, validCategories, categoryNames, categoryNames, wordTable, theta, trainParams);
     statistics.accuracies(passj) = results.accuracy;
     statistics.avgPrecisions(passj) = results.avgPrecision;
     statistics.avgRecalls(passj) = results.avgRecall;
