@@ -47,7 +47,7 @@ clear files;
 
 %% Load first batch of training images
 disp('Loading first batch of training images and initializing parameters');
-[imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, 1, batchFilePath);
+[imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, batchFilePath, 1);
 numCategories = length(categoryNames);
 trainParams.imageColumnSize = size(imgs, 1); % the length of the column representation of a raw image
 
@@ -84,7 +84,7 @@ debugParams.cReg = 1E-3;
 
 %% Load validation batch
 disp('Loading validation batch');
-[validImgs, validCategories, validCategoryNames] = loadTrainBatch(trainParams.batchFilePrefix, numBatches+1, batchFilePath);
+[validImgs, validCategories, validCategoryNames] = loadTrainBatch(trainParams.batchFilePrefix, batchFilePath, numBatches+1);
 
 %% Initialize actual weights
 disp('Initializing parameters');
@@ -119,7 +119,7 @@ for passj = 1:trainParams.maxPass
             nextBatch = 1;
         end
         
-        [imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, nextBatch, batchFilePath);
+        [imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, batchFilePath, nextBatch);
     end
     % test on validation batch
     fprintf('----------------------------------------\n');
