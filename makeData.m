@@ -1,5 +1,6 @@
 % Prepare the data
 
+disp('Loading data');
 train = load('image_data/train.mat');
 test = load('image_data/test.mat');
 
