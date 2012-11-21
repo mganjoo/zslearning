@@ -1,12 +1,15 @@
 % Prepare the training data
 
-X = load('image_data/trainX.mat');
-Y = load('image_data/trainY.mat');
+train = load('image_data/train.mat');
+test = load('image_data/test.mat');
 
 disp('Creating training set');
-makeFeatureBatches(X.trainXCs, Y.trainY, 5, { 'cat', 'truck' });
+makeFeatureBatches(train.trainX, train.trainY, 5, { 'cat', 'truck' });
 
 disp('Creating mini-training set');
-makeFeatureBatches(X.trainXCs, Y.trainY, 5, { 'cat', 'truck' }, 'mini_batch', 4);
+makeFeatureBatches(train.trainX, train.trainY, 5, { 'cat', 'truck' }, 'mini_batch', 4);
 
-clear X Y;
+disp('Creating zero-shot test set');
+makeFeatureBatches(test.testX, test.testY, 1, { 'airplane', 'automobile', 'bird', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck' }, 'zeroshot_test_batch');
+
+clear train test;
