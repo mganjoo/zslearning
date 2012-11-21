@@ -1,6 +1,5 @@
-CIFAR_DIR='../image_data/cifar-10-batches-mat/';
-OUTPUT_DIR='../image_data/';
-SPAMS_DIR='/path/to/SPAMS/release/platform'; % E.g.: 'SPAMS/release/mkl64'
+OUTPUT_DIR = '../image_data/';
+CIFAR_DIR  = '../image_data/cifar-10-batches-mat/';
 
 %%%%% Configuration
 addpath ../toolbox/minFunc;
@@ -9,32 +8,8 @@ numBases=1600;
 CIFAR_DIM=[32 32 3];
 alpha = 0.25;  %% CV-chosen value for soft-threshold function.
 lambda = 1.0;  %% CV-chosen sparse coding penalty.
-
-%%%%% Dictionary Training %%%%%%
-%alg='patches'; %% Use randomly sampled patches.  Test accuracy 79.14%
-alg='omp1';   %% Use 1-hot VQ (OMP-1).  Test accuracy 79.96%
-%alg='sc';     %% Sparse coding
-
-%%%%% Encoding %%%%%%
-encoder='thresh'; encParam=alpha; %% Use soft threshold encoder.
-%encoder='sc'; encParam=lambda; %% Use sparse coding for encoder.
-
-%%%%% SVM Parameter %%%%%
-switch (encoder)
- case 'thresh'
-  L = 0.01; % L=0.01 for 1600 features.  Use L=0.03 for 4000-6000 features.
- case 'sc'
-  L = 1.0; % May need adjustment for various combinations of training / encoding parameters.
-end
-
-%% Check SPAMS install
-if (strcmp(alg,'sc') || strcmp(encoder, 'sc'))
-  assert(~strcmp(SPAMS_DIR, '/path/to/SPAMS/release/platform'), ...
-         ['You need to modify run_feature_extraction.m so that SPAMS_DIR points to ' ...
-          'the SPAMS toolkit release directory.  You can download this ' ...
-          'toolkit from:  http://www.di.ens.fr/willow/SPAMS/downloads.html']);
-  addpath(SPAMS_DIR);
-end
+encoder='thresh';
+encParam=alpha; % Use soft threshold encoder.
 
 %% Load CIFAR training data
 fprintf('Loading training data...\n');
@@ -49,14 +24,7 @@ trainY = double([f1.labels; f2.labels; f3.labels; f4.labels; f5.labels]) + 1; % 
 clear f1 f2 f3 f4 f5;
 
 % extract random patches
-switch (alg)
- case 'omp1'
-  numPatches = 400000;
- case 'sc'
-  numPatches = 100000;
- case 'patches'
-  numPatches = 50000; % still needed for whitening
-end
+numPatches = 400000;
 patches = zeros(numPatches, rfSize*rfSize*3);
 for i=1:numPatches
   if (mod(i,10000) == 0) fprintf('Extracting patch: %d / %d\n', i, numPatches); end
@@ -78,15 +46,7 @@ P = V * diag(sqrt(1./(diag(D) + 0.1))) * V';
 patches = bsxfun(@minus, patches, M) * P;
 
 % run training
-switch alg
- case 'omp1'
-  dictionary = run_omp1(patches, numBases, 50);
- case 'sc'
-  dictionary = run_sc(patches, numBases, 10, lambda);
- case 'patches'
-    dictionary = patches(randsample(size(patches,1), numBases), :);
-    dictionary = bsxfun(@rdivide, dictionary, sqrt(sum(dictionary.^2,2)) + 1e-20);
-end
+dictionary = run_omp1(patches, numBases, 50);
 
 % extract training features
 trainXC = extract_features(trainX, dictionary, rfSize, CIFAR_DIM, M,P, encoder, encParam);
@@ -112,5 +72,7 @@ testX   = testXCs';
 testY   = testY';
 
 % save files
+fprintf('Saving train data...\n');
 save([OUTPUT_DIR 'train.mat'], 'trainX', 'trainY', '-v7.3');
+fprintf('Saving test data...\n');
 save([OUTPUT_DIR 'test.mat'], 'testX', 'testY', '-v7.3');
