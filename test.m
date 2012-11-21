@@ -1,8 +1,6 @@
 function [] = test( outputPath, batchFilePrefix )
 
-if nargin < 1
-    outputPath = 'savedParams';
-end
+addpath toolbox/;
 
 load(sprintf('%s/params_final.mat', outputPath), 'theta', 'trainParams');
 
