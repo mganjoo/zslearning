@@ -51,7 +51,7 @@ if costPerImage == 0
 end
 
 % Regularization
-reg = 0.5 * params.cReg * (sum(sum(W{1}.^2)) + sum(sum(W{2}.^2)));
+reg = 0.5 * (params.wReg * (sum(sum(W1_word.^2))) + params.iReg * (sum(sum(W1_image.^2))) + (params.wReg + params.iReg) * sum(sum(W{2}.^2)));
 
 % Total cost
 costTotal = 1/numImages * sum(costPerImage) + reg;
@@ -83,8 +83,8 @@ for j = 1:numCategories
 end
 
 %% Update gradients
-gradW1 = 1/numImages*gradW1 + params.cReg*W{1};
-gradW2 = 1/numImages*gradW2 + params.cReg*W{2};
+gradW1 = 1/numImages*gradW1 + [ params.wReg*W1_word params.iReg*W1_image ];
+gradW2 = 1/numImages*gradW2 + (params.wReg+params.iReg)*W{2};
 gradb1 = 1/numImages*gradb1;
 
 gradTotal = [ gradW1(:); gradW2(:); gradb1(:) ];

@@ -7,7 +7,8 @@ fields = {{'wordDataset',         'icml'}; % type of embedding dataset to use ('
           {'maxPass',             60};     % maximum number of passes through training data
           {'maxIter',             5};      % maximum number of minFunc iterations on a batch
           {'hiddenSize',          100};    % number of units in hidden layer
-          {'cReg',                1E-3};   % regularization parameter (weight decay)
+          {'wReg',                1E-3};   % regularization parameter for words (weight decay)
+          {'iReg',                1E-6};   % regularization parameter for images (weight decay)
           {'fixRandom',           false};  % whether to fix the random number generator
           {'outputPath',          'savedParams'}; % the path to output files to
 };
@@ -78,7 +79,8 @@ debugParams.inputSize = 4;
 debugParams.hiddenSize = 5;
 debugParams.f = trainParams.f;
 debugParams.f_prime = trainParams.f_prime;
-debugParams.cReg = 1E-3;
+debugParams.wReg = 1E-3;
+debugParams.iReg = 1E-6;
 [debugTheta, debugParams.decodeInfo] = initializeParameters(debugParams);
 [~, ~, ~, ~] = minFunc( @(p) trainingCost(p, dataToUse, debugParams), debugTheta, debugOptions);
 
