@@ -7,22 +7,10 @@ import datetime
 
 # The project path is always the directory of the script
 PROJECT_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
+TRAIN_SCRIPT = os.path.join(PROJECT_PATH, "train.py")
 
-matlabCommand = """
-matlab -nodisplay -nodesktop <<EOD
-cd {projectPath:s};
-trainParams.wordDataset     = {wordDataset!r};
-trainParams.batchFilePrefix = {batchFilePrefix!r};
-trainParams.maxPass         = {maxPass:d};
-trainParams.maxIter         = {maxIter:d};
-trainParams.wReg            = {wReg:.3E};
-trainParams.iReg            = {iReg:.3E};
-trainParams.outputPath      = {outputPath!r};
-train;
-EOD
-"""
-
-qsubCommand = 'cat <<EOF | nlpsub --mail=bea --name={name!r} --log-dir={outputPath!r} --clobber --priority=high {optionalArgs} {command}EOF'
+qsubCommand = "nlpsub --mail=bea --name={name!r} --log-dir={outputPath!r} --clobber --priority=high {qsubOptionalArguments} {command!r}"
+matlabCommand = "{trainScript} --wordset {wordset} --trainset {trainset} --maxPass {maxPass} --maxIter {maxIter} --wordReg {wordReg} --imageReg {imageReg} --outputPath {outputPath}"
 
 parser = argparse.ArgumentParser(description="Submit training job to NLP cluster")
 parser.add_argument('--wordset', help='the word vector dataset to use')
@@ -41,32 +29,33 @@ args = parser.parse_args()
 jobId = args.jobId or ('zsl-' + datetime.datetime.today().strftime("%Y-%m-%d_%H%M%S_%f"))
 outputPath = os.path.join(PROJECT_PATH, jobId)
 
-arguments = {
-    'wordDataset':     args.wordset or 'icml',
-    'batchFilePrefix': args.trainset or 'mini_batch',
-    'maxPass':         args.maxPass or 3,
-    'maxIter':         args.maxIter or 2,
-    'wReg':            args.wordReg or 1E-3,
-    'iReg':            args.imageReg or 1E-6,
-    'projectPath':     PROJECT_PATH,
-    'outputPath':      outputPath,
+matlabArguments = {
+    'trainScript': TRAIN_SCRIPT,
+    'wordset':     args.wordset or 'icml',
+    'trainset':    args.trainset or 'mini_batch',
+    'maxPass':     args.maxPass or 3,
+    'maxIter':     args.maxIter or 2,
+    'wordReg':     args.wordReg or 1E-3,
+    'imageReg':    args.imageReg or 1E-6,
+    'projectPath': PROJECT_PATH,
+    'outputPath':  outputPath,
 }
 
-optionalArgs = ''
+qsubOptionalArguments = ''
 if args.machine:
-    optionalArgs += ' --hosts={0!r} '.format(','.join(args.machine))
+    qsubOptionalArguments += ' --hosts={0!r} '.format(','.join(args.machine))
 if args.mem:
-    optionalArgs += ' --mem={0} '.format(args.mem)
+    qsubOptionalArguments += ' --mem={0} '.format(args.mem)
 if args.verbose:
-    optionalArgs += ' --verbose '
+    qsubOptionalArguments += ' --verbose '
 if args.dry_run:
-    optionalArgs += ' --dry-run '
+    qsubOptionalArguments += ' --dry-run '
 
 qsubArguments = {
     'name':         jobId,
     'outputPath':   outputPath,
-    'optionalArgs': optionalArgs.strip(),
-    'command':      matlabCommand.format(**arguments),
+    'qsubOptionalArguments': qsubOptionalArguments.strip(),
+    'command':      matlabCommand.format(**matlabArguments),
 }
 
 finalCommand = qsubCommand.format(**qsubArguments)
@@ -82,8 +71,8 @@ for argKey in argDict:
         break
 
 if atLeastOne:
-    #if not os.path.exists(outputPath):
-    #    os.makedirs(outputPath)
+    if not args.dry_run and not os.path.exists(outputPath):
+        os.makedirs(outputPath)
     os.system(finalCommand)
 else:
     print '>>>> No argument was given. Not submitting job. You can see the way the argument would be constructed.'
