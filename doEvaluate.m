@@ -46,8 +46,10 @@ end
 
 truePos = diag(confusion); % true positives, column vector
 results.accuracy = sum(truePos) / numImages;
-results.avgPrecision = mean(truePos ./ sum(confusion, 2));
-results.avgRecall = mean(truePos' ./ sum(confusion, 1));
+t = truePos ./ sum(confusion, 2);
+results.avgPrecision = mean(t(isfinite(t), :));
+t = truePos' ./ sum(confusion, 1);
+results.avgRecall = mean(t(:, isfinite(t)));
 
 disp(['Accuracy: ' num2str(results.accuracy)]);
 disp(['Averaged precision: ' num2str(results.avgPrecision)]);
