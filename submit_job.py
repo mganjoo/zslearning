@@ -8,9 +8,10 @@ import datetime
 # The project path is always the directory of the script
 PROJECT_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 TRAIN_SCRIPT = os.path.join(PROJECT_PATH, "train.py")
+PYTHON_EXE   = '/u/nlp/bin/python2.7'
 
-qsubCommand = "nlpsub --mail=bea --name={name!r} --log-dir={outputPath!r} --clobber --priority=high {qsubOptionalArguments} {command!r}"
-matlabCommand = "{trainScript} --wordset {wordset} --trainset {trainset} --maxPass {maxPass} --maxIter {maxIter} --wordReg {wordReg} --imageReg {imageReg} --outputPath {outputPath}"
+qsubCommand = "nlpsub --mail=bea --name={name!r} --log-dir={outputPath!r} --clobber --priority=high {qsubOptionalArguments} {command}"
+matlabCommand = "{pythonExe} {trainScript} --wordset {wordset} --trainset {trainset} --maxPass {maxPass} --maxIter {maxIter} --wordReg {wordReg} --imageReg {imageReg} --outputPath {outputPath}"
 
 parser = argparse.ArgumentParser(description="Submit training job to NLP cluster")
 parser.add_argument('--wordset', help='the word vector dataset to use')
@@ -30,6 +31,7 @@ jobId = args.jobId or ('zsl-' + datetime.datetime.today().strftime("%Y-%m-%d_%H%
 outputPath = os.path.join(PROJECT_PATH, jobId)
 
 matlabArguments = {
+    'pythonExe':   PYTHON_EXE,
     'trainScript': TRAIN_SCRIPT,
     'wordset':     args.wordset or 'icml',
     'trainset':    args.trainset or 'mini_batch',
