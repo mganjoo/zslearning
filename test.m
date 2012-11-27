@@ -1,8 +1,8 @@
-function [] = test( outputPath, batchFilePrefix )
+function [ guessedCategoriesDebug, results ] = test( filename, batchFilePrefix )
 
 addpath toolbox/;
 
-t = load(sprintf('%s/params_final.mat', outputPath), 'theta', 'trainParams');
+t = load(filename, 'theta', 'trainParams');
 
 % Additional options
 disp('Loading test images');
@@ -20,9 +20,9 @@ for categoryIndex = 1:length(testCategoryNames)
     icategoryWord = ismember(vv.vocab, testCategoryNames(categoryIndex)) == true;
     wordTable(:, categoryIndex) = ee.embeddings(:, icategoryWord);
 end
-clear ee vv f;
+clear t ee vv f;
 
 disp('Test results');
-doEvaluate(imgs, categories, originalCategoryNames, testCategoryNames, wordTable, t.theta, t.trainParams);
+[ guessedCategoriesDebug, results ] = doEvaluate(imgs, categories, originalCategoryNames, testCategoryNames, wordTable, t.theta, t.trainParams);
 
 end

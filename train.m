@@ -99,9 +99,12 @@ end
 %% Begin batches of training
 display(['Number of batches: ' num2str(numBatches)]);
 statistics.costAfterBatch = zeros(1, numBatches * trainParams.maxPass);
-statistics.accuracies = zeros(1, trainParams.maxPass);
-statistics.avgPrecisions = zeros(1, trainParams.maxPass);
-statistics.avgRecalls = zeros(1, trainParams.maxPass);
+statistics.accuracies = zeros(1, trainParams.maxPass / trainParams.saveEvery);
+statistics.avgPrecisions = zeros(1, trainParams.maxPass / trainParams.saveEvery);
+statistics.avgRecalls = zeros(1, trainParams.maxPass / trainParams.saveEvery);
+statistics.testAccuracies = zeros(1, trainParams.maxPass / trainParams.saveEvery);
+statistics.testAvgPrecisions = zeros(1, trainParams.maxPass / trainParams.saveEvery);
+statistics.testAvgRecalls = zeros(1, trainParams.maxPass / trainParams.saveEvery);
 for passj = 1:trainParams.maxPass
     for batchj = 1:numBatches
         dataToUse = prepareData(imgs, categories, wordTable);
@@ -123,18 +126,24 @@ for passj = 1:trainParams.maxPass
         
         [imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, batchFilePath, nextBatch);
     end
-    % test on validation batch
-    fprintf('----------------------------------------\n');
-    fprintf('Validation after pass %d\n', passj);
-    [ ~, results ] = doEvaluate(validImgs, validCategories, categoryNames, categoryNames, wordTable, theta, trainParams);
-    statistics.accuracies(passj) = results.accuracy;
-    statistics.avgPrecisions(passj) = results.avgPrecision;
-    statistics.avgRecalls(passj) = results.avgRecall;
     
     % intermediate saves
     if mod(passj, trainParams.saveEvery) == 0
+        % test on validation batch
+        fprintf('----------------------------------------\n');
+        fprintf('Validation after pass %d\n', passj);
+        [ ~, results ] = doEvaluate(validImgs, validCategories, categoryNames, categoryNames, wordTable, theta, trainParams);
+        statistics.accuracies(passj / trainParams.saveEvery) = results.accuracy;
+        statistics.avgPrecisions(passj / trainParams.saveEvery) = results.avgPrecision;
+        statistics.avgRecalls(passj / trainParams.saveEvery) = results.avgRecall;
         filename = sprintf('%s/params_pass_%d.mat', trainParams.outputPath, passj);
         save(filename, 'theta', 'trainParams');
+        fprintf('----------------------------------------\n');
+        fprintf('Testing after pass %d\n', passj);
+        [ ~, tresults ] = test(filename, 'zeroshot_test_batch');
+        statistics.testAccuracies(passj / trainParams.saveEvery) = tresults.accuracy;
+        statistics.testAvgPrecisions(passj / trainParams.saveEvery) = tresults.avgPrecision;
+        statistics.testAvgRecalls(passj / trainParams.saveEvery) = tresults.avgRecall;
     end
     
     if results.accuracy >= 0.7
