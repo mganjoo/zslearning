@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import os
 import sys
@@ -22,7 +22,7 @@ train;
 EOD
 """
 
-qsubCommand = 'cat <<EOF | nlpsub -x "-V" -M bea -n {name} -d {outputPath} --clobber -p high {optionalArgs} {command}EOF'
+qsubCommand = 'cat <<EOF | nlpsub --mail=bea --name={name!r} --log-dir={outputPath!r} --clobber --priority=high {optionalArgs} {command}EOF'
 
 parser = argparse.ArgumentParser(description="Submit training job to NLP cluster")
 parser.add_argument('--wordset', help='the word vector dataset to use')
@@ -34,6 +34,7 @@ parser.add_argument('--imageReg', help='the regularization param for images', ty
 parser.add_argument('-m', '--machine', nargs='*', help='machines to use')
 parser.add_argument('--mem', help='memory to allocate')
 parser.add_argument('-i', '--jobId', help='the name of the job, also used as output folder')
+parser.add_argument('--dry-run', help='do a dry run (do not actually submit the job)', action="store_true")
 parser.add_argument('-v', '--verbose', help='show command that will be executed', action="store_true")
 args = parser.parse_args()
 
@@ -53,9 +54,13 @@ arguments = {
 
 optionalArgs = ''
 if args.machine:
-    optionalArgs += ' -H {0} '.format(' '.join(args.machine))
+    optionalArgs += ' --hosts={0!r} '.format(','.join(args.machine))
 if args.mem:
-    optionalArgs += ' -m {0} '.format(args.mem)
+    optionalArgs += ' --mem={0} '.format(args.mem)
+if args.verbose:
+    optionalArgs += ' --verbose '
+if args.dry_run:
+    optionalArgs += ' --dry-run '
 
 qsubArguments = {
     'name':         jobId,
@@ -77,8 +82,8 @@ for argKey in argDict:
         break
 
 if atLeastOne:
-    if not os.path.exists(outputPath):
-        os.makedirs(outputPath)
+    #if not os.path.exists(outputPath):
+    #    os.makedirs(outputPath)
     os.system(finalCommand)
 else:
     print '>>>> No argument was given. Not submitting job. You can see the way the argument would be constructed.'
