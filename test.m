@@ -7,7 +7,7 @@ t = load(filename, 'theta', 'trainParams');
 % Additional options
 disp('Loading test images');
 batchFilePath   = 'image_data/cifar-10-features';
-[imgs, categories, originalCategoryNames] = loadTrainBatch(batchFilePrefix, batchFilePath);
+[imgs, categories, originalCategoryNames] = loadBatch(batchFilePrefix, batchFilePath);
 
 %% Load word representations
 disp('Loading word representations');
@@ -20,7 +20,7 @@ for categoryIndex = 1:length(testCategoryNames)
     icategoryWord = ismember(vv.vocab, testCategoryNames(categoryIndex)) == true;
     wordTable(:, categoryIndex) = ee.embeddings(:, icategoryWord);
 end
-clear t ee vv f;
+clear ee vv f;
 
 disp('Test results');
 [ guessedCategoriesDebug, results ] = doEvaluate(imgs, categories, originalCategoryNames, testCategoryNames, wordTable, t.theta, t.trainParams);
