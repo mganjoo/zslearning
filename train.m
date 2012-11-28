@@ -144,11 +144,10 @@ for passj = 1:trainParams.maxPass
         statistics.testAccuracies(passj / trainParams.saveEvery) = tresults.accuracy;
         statistics.testAvgPrecisions(passj / trainParams.saveEvery) = tresults.avgPrecision;
         statistics.testAvgRecalls(passj / trainParams.saveEvery) = tresults.avgRecall;
-    end
-    
-    if results.accuracy >= 0.7
-        break;
-    end
+        if results.accuracy >= 0.7
+            break;
+        end
+    end    
 end
 
 %% Save learned parameters
