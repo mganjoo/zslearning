@@ -13,11 +13,11 @@ encParam=alpha; % Use soft threshold encoder.
 
 %% Load CIFAR training data
 fprintf('Loading training data...\n');
-f1=load([CIFAR_DIR '/train.mat']);
+f1=load([CIFAR_DIR '/train96.mat']);
 
-trainX = double(f1.data);
-trainY_coarse = double(f1.coarse_labels) + 1; % add 1 to labels!
-trainY_fine = double(f1.fine_labels) + 1; % add 1 to labels!
+trainX = double(f1.data');
+trainY_coarse = double(f1.coarse_labels);
+trainY_fine = double(f1.fine_labels);
 clear f1;
 
 % extract random patches
@@ -58,10 +58,10 @@ trainY_coarse   = trainY_coarse';
 
 %% Load CIFAR test data
 fprintf('Loading test data...\n');
-f1 = load([CIFAR_DIR '/test.mat']);
-testX = double(f1.data);
-testY_coarse = double(f1.coarse_labels) + 1;
-testY_fine = double(f1.fine_labels) + 1;
+f1 = load([CIFAR_DIR '/test96.mat']);
+testX = double(f1.data');
+testY_coarse = double(f1.coarse_labels);
+testY_fine = double(f1.fine_labels);
 clear f1;
 
 % compute testing features and standardize
