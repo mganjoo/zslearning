@@ -117,16 +117,18 @@ for passj = 1:trainParams.maxPass
         % optimize and gather statistics
         [theta, cost, ~, output] = minFunc( @(p) trainingCost(p, dataToUse, trainParams), theta, options);
         statistics.costAfterBatch(1, (passj-1) * numBatches + batchj) = cost;
-        
-        % test on current training batch
-        doEvaluate(dataToUse.imgs, dataToUse.categories, categoryNames, categoryNames, wordTable, theta, trainParams);
-                
+                        
         if batchj < numBatches
             nextBatch = batchj + 1;
         else
             nextBatch = 1;
         end
-        
+
+        if mod(passj, trainParams.saveEvery) == 0
+            % test on current training batch
+            doEvaluate(dataToUse.imgs, dataToUse.categories, categoryNames, categoryNames, wordTable, theta, trainParams);
+        end
+
         [imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, batchFilePath, nextBatch);
     end
     
