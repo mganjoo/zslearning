@@ -11,6 +11,7 @@ fields = {{'wordDataset',         'icml'}; % type of embedding dataset to use ('
           {'iReg',                1E-6};   % regularization parameter for images (weight decay)
           {'fixRandom',           false};  % whether to fix the random number generator
           {'outputPath',          'savedParams'}; % the path to output files to
+          {'saveEvery',           10};     % number of passes after which we need to do intermediate saves
 };
 
 % Load existing model parameters, if they exist
@@ -32,7 +33,6 @@ end
 
 trainParams.f = @tanh;             % function to use in the neural network activations
 trainParams.f_prime = @tanh_prime; % derivative of f
-trainParams.saveEvery = 10;        % number of passes after which we need to do intermediate saves
 
 % minFunc options
 options.Method = 'lbfgs';
@@ -48,7 +48,7 @@ clear files;
 
 %% Load first batch of training images
 disp('Loading first batch of training images and initializing parameters');
-[imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, batchFilePath, 1);
+[imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, batchFilePath, 1);
 numCategories = length(categoryNames);
 trainParams.imageColumnSize = size(imgs, 1); % the length of the column representation of a raw image
 
@@ -86,7 +86,7 @@ debugParams.iReg = 1E-6;
 
 %% Load validation batch
 disp('Loading validation batch');
-[validImgs, validCategories, validCategoryNames] = loadTrainBatch(trainParams.batchFilePrefix, batchFilePath, numBatches+1);
+[validImgs, validCategories, validCategoryNames] = loadBatch(trainParams.batchFilePrefix, batchFilePath, numBatches+1);
 
 %% Initialize actual weights
 disp('Initializing parameters');
@@ -99,12 +99,15 @@ end
 %% Begin batches of training
 display(['Number of batches: ' num2str(numBatches)]);
 statistics.costAfterBatch = zeros(1, numBatches * trainParams.maxPass);
-statistics.accuracies = zeros(1, trainParams.maxPass / trainParams.saveEvery);
-statistics.avgPrecisions = zeros(1, trainParams.maxPass / trainParams.saveEvery);
-statistics.avgRecalls = zeros(1, trainParams.maxPass / trainParams.saveEvery);
-statistics.testAccuracies = zeros(1, trainParams.maxPass / trainParams.saveEvery);
-statistics.testAvgPrecisions = zeros(1, trainParams.maxPass / trainParams.saveEvery);
-statistics.testAvgRecalls = zeros(1, trainParams.maxPass / trainParams.saveEvery);
+if trainParams.maxPass >= trainParams.saveEvery
+    numSaves = floor(trainParams.maxPass / trainParams.saveEvery);
+    statistics.accuracies = zeros(1, numSaves);
+    statistics.avgPrecisions = zeros(1, numSaves);
+    statistics.avgRecalls = zeros(1, numSaves);
+    statistics.testAccuracies = zeros(1, numSaves);
+    statistics.testAvgPrecisions = zeros(1, numSaves);
+    statistics.testAvgRecalls = zeros(1, numSaves);
+end
 for passj = 1:trainParams.maxPass
     for batchj = 1:numBatches
         dataToUse = prepareData(imgs, categories, wordTable);
@@ -124,7 +127,7 @@ for passj = 1:trainParams.maxPass
             nextBatch = 1;
         end
         
-        [imgs, categories, categoryNames] = loadTrainBatch(trainParams.batchFilePrefix, batchFilePath, nextBatch);
+        [imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, batchFilePath, nextBatch);
     end
     
     % intermediate saves

@@ -1,4 +1,4 @@
-function [] = makeTestBatch(trainX, trainY, excludedCategories, prefix, numPerCategory)
+function [] = makeTestBatch(testX, testY, excludedCategories, prefix, numPerCategory)
 
 % Load categories
 b = load('image_data/cifar-10-batches-mat/batches.meta.mat');
@@ -36,7 +36,7 @@ for i = 1:totalCategories
         continue;
     end
     categorySet(k) = i;
-    temp = find(trainY == i);
+    temp = find(testY == i);
     batch((k-1)*numPerCategory+1:k*numPerCategory) = temp(1:numPerCategory);
     k = k + 1;
 end
@@ -49,9 +49,9 @@ end
 batch = batch(randperm(length(batch)));
 disp('Output test batch');
 t = matfile(sprintf('image_data/cifar-10-features/%s.mat', prefix));
-t.trainX = trainX(:, batch);
-trainYc = arrayfun(@(x) find(categorySet == x), trainY(:, batch));
-t.trainY = trainYc;
+t.X = testX(:, batch);
+testYc = arrayfun(@(x) find(categorySet == x), testY(:, batch));
+t.Y = testYc;
 t.names = categoryNames(categorySet);
 
 end

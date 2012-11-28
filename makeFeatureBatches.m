@@ -57,9 +57,9 @@ for i = 1:numBatches
     batches{i} = batches{i}(randperm(length(batches{i})));
     fprintf('Output batch %d\n', i);
     t = matfile(sprintf('image_data/cifar-10-features/%s_%d.mat', prefix, i));
-    t.trainX = trainX(:, batches{i});
+    t.X = trainX(:, batches{i});
     trainYc = arrayfun(@(x) find(categorySet == x), trainY(:, batches{i}));
-    t.trainY = trainYc;
+    t.Y = trainYc;
     t.names = categoryNames(categorySet);
 end
 
