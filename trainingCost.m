@@ -3,6 +3,7 @@ function [costTotal, gradTotal] = trainingCost(theta, data, params )
 % Extract our weight and bias matrices from the stack.
 [W, b] = stack2param(theta, params.decodeInfo);
 
+hiddenSize        = size(W{1}, 1);
 wordVectorLength  = size(data.wordTable, 1);
 numCategories     = size(data.wordTable, 2);
 numImages         = size(data.imgs, 2);
@@ -31,7 +32,7 @@ a2 = params.f(t1 + t2);
 output  = W{2} * a2;
 
 % Extract columns corresponding to "good" combinations
-pgood = [ data.p1(:, data.goodIndices); data.imgs ];
+pgood = [ data.wgood; data.imgs ];
 a2good = a2(:, data.goodIndices);
 outputGood = output(data.goodIndices);
 
@@ -70,17 +71,18 @@ gradW2 = sum(temp(:, keepIndices), 2)';
 deltagood = repmat(W{2}, numImages, 1)' .* params.f_prime(a2good);
 deltabad  = repmat(W{2}, numCategories * numImages, 1)' .* params.f_prime(a2);
 
+% Gradient of W1 (extremely complicated vectorized expression, sorry!)
+fpa2 = params.f_prime(a2);
+fpa2(:, ~keepIndices) = 0; % mask out unwanted outputs
+finalkeep = sum(reshape(keepIndices', numImages, []), 2)';
+t1 = reshape(sum(reshape(fpa2', numImages, [])), numCategories, [])' * data.wordTable';
+t2 = reshape(sum(reshape(fpa2, hiddenSize * numImages, []), 2), hiddenSize, numImages);
+gradW1 = -(repmat(finalkeep, size(W{1}, 1), 1) .* deltagood) * pgood' + ...
+    [repmat(W{2}', 1, wordVectorLength) .* t1, repmat(W{2}', 1, numImages) .* t2 * data.imgs'];
+
+% Gradient of b1
 dmask = repmat(keepIndices, size(deltagood, 1), 1);
 gradb1 = sum(dmask.*repmat(-deltagood, 1, numCategories) + dmask.*deltabad, 2);
-
-% TODO: try to eliminate loop (can't because of many matrix outer products)
-gradW1 = zeros(size(W{1}));
-for j = 1:numCategories
-    range  = (j-1)*numImages+1:j*numImages;
-    pmask  = repmat(keepIndices(range)', 1, size(data.p1, 1) + size(data.imgs, 1));
-    p      = [ data.p1(:, range); data.imgs ];
-    gradW1 = gradW1 - deltagood*(pmask.*pgood') + deltabad(:, range)*(pmask.*p');
-end
 
 %% Update gradients
 gradW1 = 1/numImages*gradW1 + [ params.wReg*W1_word params.iReg*W1_image ];
