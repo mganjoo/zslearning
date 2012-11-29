@@ -40,7 +40,7 @@ options.display = 'on';
 options.MaxIter = trainParams.maxIter;
 
 % Additional options
-batchFilePath   = 'image_data/cifar-10-features';
+batchFilePath   = 'image_data/cifar-features';
 files = dir([batchFilePath '/' trainParams.batchFilePrefix '*.mat']);
 numBatches = length(files) - 1;
 assert(numBatches >= 1, 'Must have at least two batch files (one for training, one for validation)');
@@ -145,7 +145,7 @@ for passj = 1:trainParams.maxPass
         save(filename, 'theta', 'trainParams');
         fprintf('----------------------------------------\n');
         fprintf('Testing after pass %d\n', passj);
-        [ ~, tresults ] = test(filename, 'zeroshot_test_batch');
+        [ ~, tresults ] = test(filename, 'zeroshot_test_batch_96', 'cifar100');
         statistics.testAccuracies(passj / trainParams.saveEvery) = tresults.accuracy;
         statistics.testAvgPrecisions(passj / trainParams.saveEvery) = tresults.avgPrecision;
         statistics.testAvgRecalls(passj / trainParams.saveEvery) = tresults.avgRecall;

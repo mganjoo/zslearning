@@ -1,12 +1,11 @@
-function [] = makeTestBatch(testX, testY, excludedCategories, prefix, noExclude, numPerCategory)
-
+function [] = makeTestBatch100(testX, testY, excludedCategories, prefix, noExclude, numPerCategory)
 
 % Load categories
-b = load('image_data/cifar-10-batches-mat/batches.meta.mat');
-categoryNames = b.label_names;
+b = load('image_data/cifar-100-matlab/meta96.mat');
+categoryNames = b.fine_label_names;
 
 % CIFAR constants (do not modify)
-TOTAL_IMAGES = 10000;
+TOTAL_IMAGES = 9600;
 totalCategories = length(categoryNames);
 MAX_NUM_PER_CATEGORY = TOTAL_IMAGES / totalCategories;
 
@@ -15,7 +14,7 @@ if nargin < 6
     if nargin < 5
         noExclude = false; % noExclude can be set to true if the set of "excludedCategories" is actually the entire set of categories to use
         if nargin < 4
-            prefix = 'default_test_batch';
+            prefix = 'default_test_batch_96';
             if nargin < 3 
                 excludedCategories = {};
             else

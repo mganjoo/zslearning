@@ -53,8 +53,6 @@ trainXC_mean = mean(trainXC);
 trainXC_sd = sqrt(var(trainXC)+0.01);
 trainXCs = bsxfun(@rdivide, bsxfun(@minus, trainXC, trainXC_mean), trainXC_sd);
 trainX   = trainXCs';
-trainY_fine   = trainY_fine';
-trainY_coarse   = trainY_coarse';
 
 %% Load CIFAR test data
 fprintf('Loading test data...\n');
@@ -68,8 +66,6 @@ clear f1;
 testXC  = extract_features(testX, dictionary, rfSize, CIFAR_DIM, M,P, encoder, encParam);
 testXCs = bsxfun(@rdivide, bsxfun(@minus, testXC, trainXC_mean), trainXC_sd);
 testX   = testXCs';
-testY_fine   = testY_fine';
-testY_coarse   = testY_coarse';
 
 % save files
 fprintf('Saving train data...\n');

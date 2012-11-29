@@ -29,7 +29,7 @@ outputGrouped = reshape(output, numImages, [])';
 % map categories from originalCategoryNames to testCategoryNames
 mappedCategorySet = zeros(1, length(originalCategoryNames));
 for i = 1:length(originalCategoryNames)
-    mappedCategorySet(i) = find(not(cellfun('isempty', strfind(testCategoryNames, originalCategoryNames{i}))));
+    mappedCategorySet(i) = find(strcmp(originalCategoryNames{i}, testCategoryNames));
 end
 mappedCategories = arrayfun(@(x) mappedCategorySet(x), categories);
 

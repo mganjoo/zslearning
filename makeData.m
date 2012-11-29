@@ -14,6 +14,6 @@ disp('Creating mini-training set');
 makeFeatureBatches(train.trainX, train.trainY, 5, { 'cat', 'truck' }, 'mini_batch', 4);
 
 disp('Creating zero-shot validation set');
-makeTestBatch(test.testX, test.testY, { 'airplane', 'automobile', 'bird', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck' }, 'zeroshot_test_batch');
+makeTestBatch(test.testX, test.testY, { 'cat' }, 'zeroshot_test_batch', true);
 
 clear train test;
