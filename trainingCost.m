@@ -1,18 +1,19 @@
-function [costTotal, gradTotal] = trainingCost(theta, data, params )
+function [costTotal, gradTotal] = trainingCost( theta, data, params )
 
 % Extract our weight and bias matrices from the stack.
 [W, b] = stack2param(theta, params.decodeInfo);
 
-hiddenSize        = size(W{1}, 1);
-wordVectorLength  = size(data.wordTable, 1);
-numCategories     = size(data.wordTable, 2);
-numImages         = size(data.imgs, 2);
+hiddenSize    = size(W{1}, 1);
+wordLen       = size(data.wordTable, 1);
+imageLen      = size(data.imgs, 1);
+numCategories = size(data.wordTable, 2);
+numImages     = size(data.imgs, 2);
 
 %% Feedforward
 
 % Weight vectors for word and image components
-W1_word = W{1}(:, 1:wordVectorLength);
-W1_image = W{1}(:, wordVectorLength+1:end);
+W1_word = W{1}(:, 1:wordLen);
+W1_image = W{1}(:, wordLen+1:end);
 
 % Hidden layer
 % Input corresponding to word components
@@ -52,37 +53,42 @@ if costPerImage == 0
 end
 
 % Regularization
-reg = 0.5 * (params.wReg * (sum(sum(W1_word.^2))) + params.iReg * (sum(sum(W1_image.^2))) + (params.wReg + params.iReg) * sum(sum(W{2}.^2)));
+reg = params.wReg * (sum(sum(W1_word.^2))) + params.iReg * (sum(sum(W1_image.^2))) ...
+    + (params.wReg + params.iReg) * sum(sum(W{2}.^2));
 
 % Total cost
-costTotal = 1/numImages * sum(costPerImage) + reg;
+costTotal = 1/numImages * sum(costPerImage) + 0.5 * reg;
 
 %% Backpropagation
+
+% Calculate derivative components
+fpa2 = params.f_prime(a2);
+fpa2good = fpa2(:, data.goodIndices);
 
 % Define logical indexes for components of calculations we want to keep.
 % We discard any components where the calculated hinge loss was zero.
 keepIndices = reshape(hingeLossesGrouped > 0, 1, []);
+a2(:, ~keepIndices) = 0;
+fpa2(:, ~keepIndices) = 0;
+totalkeep = sum(reshape(keepIndices', numImages, []), 2)';
+mask = repmat(totalkeep, hiddenSize, 1);
+
+% Calculate sums across blocks
+sum_a2   = reshape(sum(reshape(a2, hiddenSize * numImages, []), 2), hiddenSize, []);
+sum_fpa2 = reshape(sum(reshape(fpa2, hiddenSize * numImages, []), 2), hiddenSize, []);
+sum_a2good = mask .* a2good;
+sum_fpa2good = mask .* fpa2good;
 
 % Gradient of W2
-temp = (repmat(-a2good, 1, numCategories) + a2);
-gradW2 = sum(temp(:, keepIndices), 2)';
+gradW2 = sum(-sum_a2good + sum_a2, 2)';
 
-% Gradient of W1 & b1
-deltagood = repmat(W{2}, numImages, 1)' .* params.f_prime(a2good);
-deltabad  = repmat(W{2}, numCategories * numImages, 1)' .* params.f_prime(a2);
-
-% Gradient of W1 (extremely complicated vectorized expression, sorry!)
-fpa2 = params.f_prime(a2);
-fpa2(:, ~keepIndices) = 0; % mask out unwanted outputs
-finalkeep = sum(reshape(keepIndices', numImages, []), 2)';
+% Gradient of W1
 t1 = reshape(sum(reshape(fpa2', numImages, [])), numCategories, [])' * data.wordTable';
-t2 = reshape(sum(reshape(fpa2, hiddenSize * numImages, []), 2), hiddenSize, numImages);
-gradW1 = -(repmat(finalkeep, size(W{1}, 1), 1) .* deltagood) * pgood' + ...
-    [repmat(W{2}', 1, wordVectorLength) .* t1, repmat(W{2}', 1, numImages) .* t2 * data.imgs'];
+t2 = sum_fpa2 * data.imgs';
+gradW1 = repmat(W{2}', 1, wordLen + imageLen) .* (-sum_fpa2good * pgood' + [t1 t2]);
 
 % Gradient of b1
-dmask = repmat(keepIndices, size(deltagood, 1), 1);
-gradb1 = sum(dmask.*repmat(-deltagood, 1, numCategories) + dmask.*deltabad, 2);
+gradb1 = W{2}' .* sum(-sum_fpa2good + sum_fpa2, 2);
 
 %% Update gradients
 gradW1 = 1/numImages*gradW1 + [ params.wReg*W1_word params.iReg*W1_image ];
