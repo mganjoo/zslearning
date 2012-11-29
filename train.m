@@ -2,8 +2,8 @@ addpath toolbox/;
 addpath toolbox/minFunc/;
 
 %% Model Parameters
-fields = {{'wordDataset',         'icml'}; % type of embedding dataset to use ('icml', 'senna', 'turian.50')
-          {'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
+fields = {{'wordDataset',         'turian.200'}; % type of embedding dataset to use ('icml', 'senna', 'turian.50', 'turian.200')
+          {'batchFilePrefix',     'mini_batch_96'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'maxPass',             60};     % maximum number of passes through training data
           {'maxIter',             5};      % maximum number of minFunc iterations on a batch
           {'hiddenSize',          100};    % number of units in hidden layer
@@ -54,15 +54,14 @@ trainParams.imageColumnSize = size(imgs, 1); % the length of the column represen
 
 %% Load word representations
 disp('Loading word representations');
-ee = load(['word_data/' trainParams.wordDataset '/embeddings.mat']);
-vv = load(['word_data/' trainParams.wordDataset '/vocab.mat']);
-trainParams.embeddingSize = size(ee.embeddings, 1);
+w = load(['word_data/' trainParams.wordDataset '/wordTable.mat']);
+trainParams.embeddingSize = size(w.wordTable, 1);
 wordTable = zeros(trainParams.embeddingSize, length(categoryNames));
 for categoryIndex = 1:length(categoryNames)
-    icategoryWord = ismember(vv.vocab, categoryNames(categoryIndex)) == true;
-    wordTable(:, categoryIndex) = ee.embeddings(:, icategoryWord);
+    icategoryWord = ismember(w.label_names, categoryNames(categoryIndex)) == true;
+    wordTable(:, categoryIndex) = w.wordTable(:, icategoryWord);
 end
-clear ee vv;
+clear w;
 
 %% First check the gradient of our minimizer
 debugImgs = rand(2, 5);
