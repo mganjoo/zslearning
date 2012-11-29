@@ -2,7 +2,7 @@ addpath toolbox/;
 addpath toolbox/minFunc/;
 
 %% Model Parameters
-fields = {{'wordDataset',         'turian.200'}; % type of embedding dataset to use ('icml', 'senna', 'turian.50', 'turian.200')
+fields = {{'wordDataset',         'turian.200'}; % type of embedding dataset to use ('turian.200')
           {'batchFilePrefix',     'mini_batch_96'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'maxPass',             60};     % maximum number of passes through training data
           {'maxIter',             5};      % maximum number of minFunc iterations on a batch
@@ -144,7 +144,7 @@ for passj = 1:trainParams.maxPass
         save(filename, 'theta', 'trainParams');
         fprintf('----------------------------------------\n');
         fprintf('Testing after pass %d\n', passj);
-        [ ~, tresults ] = test(filename, 'zeroshot_test_batch_96', 'cifar100');
+        [ ~, tresults ] = test(filename, 'zeroshot_test_batch_96');
         statistics.testAccuracies(passj / trainParams.saveEvery) = tresults.accuracy;
         statistics.testAvgPrecisions(passj / trainParams.saveEvery) = tresults.avgPrecision;
         statistics.testAvgRecalls(passj / trainParams.saveEvery) = tresults.avgRecall;

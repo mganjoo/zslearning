@@ -1,4 +1,4 @@
-function [ guessedCategoriesDebug, results ] = test( filename, batchFilePrefix, dataset )
+function [ guessedCategoriesDebug, results ] = test( filename, batchFilePrefix )
 
 addpath toolbox/;
 
@@ -10,12 +10,7 @@ batchFilePath   = 'image_data/cifar-features';
 [imgs, categories, originalCategoryNames] = loadBatch(batchFilePrefix, batchFilePath);
 
 %% Load word representations
-assert((strcmp(dataset, 'cifar10') == true) || (strcmp(dataset, 'cifar100') == true));
-if strcmp(dataset, 'cifar10') == true
-    testCategoryNames = loadCategoryNames({ 'truck' }, dataset);
-else
-    testCategoryNames = loadCategoryNames({ 'lion', 'orange', 'camel' }, dataset);
-end
+testCategoryNames = loadCategoryNames({ 'lion', 'orange', 'camel' });
 w = load(['word_data/' t.trainParams.wordDataset '/wordTable.mat']);
 trainParams.embeddingSize = size(w.wordTable, 1);
 wordTable = zeros(trainParams.embeddingSize, length(testCategoryNames));

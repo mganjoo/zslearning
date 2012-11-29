@@ -1,11 +1,11 @@
 function [] = makeFeatureBatches(trainX, trainY, numBatches, excludedCategories, prefix, numPerCategory)
 
 % Load categories
-b = load('image_data/cifar-10-batches-mat/batches.meta.mat');
-categoryNames = b.label_names;
+b = load('image_data/cifar-100-matlab/meta96.mat');
+categoryNames = b.fine_label_names;
 
 % CIFAR constants (do not modify)
-TOTAL_IMAGES = 50000;
+TOTAL_IMAGES = 48000;
 totalCategories = length(categoryNames);
 assert(mod(TOTAL_IMAGES, numBatches) == 0);
 assert(mod(TOTAL_IMAGES / numBatches, totalCategories) == 0);
@@ -14,7 +14,7 @@ MAX_NUM_PER_CATEGORY = TOTAL_IMAGES / numBatches / totalCategories;
 if nargin < 6
     numPerCategory = MAX_NUM_PER_CATEGORY;
     if nargin < 5
-        prefix = 'default_batch';
+        prefix = 'default_batch_96';
         if nargin < 4
             excludedCategories = {};
         else
