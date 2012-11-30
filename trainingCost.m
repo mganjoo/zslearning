@@ -71,13 +71,12 @@ keepIndices = reshape(hingeLossesGrouped > 0, 1, []);
 a2(:, ~keepIndices) = 0;
 fpa2(:, ~keepIndices) = 0;
 totalkeep = sum(reshape(keepIndices', numImages, []), 2)';
-mask = repmat(totalkeep, hiddenSize, 1);
 
 % Calculate sums across blocks
 sum_a2   = reshape(sum(reshape(a2, hiddenSize * numImages, []), 2), hiddenSize, []);
 sum_fpa2 = reshape(sum(reshape(fpa2, hiddenSize * numImages, []), 2), hiddenSize, []);
-sum_a2good = mask .* a2good;
-sum_fpa2good = mask .* fpa2good;
+sum_a2good = bsxfun(@times, totalkeep, a2good);
+sum_fpa2good = bsxfun(@times, totalkeep, fpa2good);
 
 % Gradient of W2
 gradW2 = sum(-sum_a2good + sum_a2, 2)';
@@ -85,7 +84,7 @@ gradW2 = sum(-sum_a2good + sum_a2, 2)';
 % Gradient of W1
 t1 = reshape(sum(reshape(fpa2', numImages, [])), numCategories, [])' * data.wordTable';
 t2 = sum_fpa2 * data.imgs';
-gradW1 = repmat(W{2}', 1, wordLen + imageLen) .* (-sum_fpa2good * pgood' + [t1 t2]);
+gradW1 = bsxfun(@times, W{2}', -sum_fpa2good * pgood' + [t1 t2]);
 
 % Gradient of b1
 gradb1 = W{2}' .* sum(-sum_fpa2good + sum_fpa2, 2);
