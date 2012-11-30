@@ -1,5 +1,5 @@
-addpath ../toolbox/;
-addpath ../toolbox/minFunc/;
+addpath toolbox/;
+addpath toolbox/minFunc/;
 
 %% Model Parameters
 fields = {{'wordDataset',         'turian.200'}; % type of embedding dataset to use ('turian.200')
