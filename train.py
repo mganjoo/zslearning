@@ -37,6 +37,7 @@ trainParams.wordDataset     = {wordset!r};
 trainParams.batchFilePrefix = {trainset!r};
 trainParams.maxPass         = {maxPass:d};
 trainParams.maxIter         = {maxIter:d};
+trainParams.saveEvery       = {saveEvery:d};
 trainParams.wReg            = {wordReg:.3E};
 trainParams.iReg            = {imageReg:.3E};
 trainParams.outputPath      = {outputPath!r};
