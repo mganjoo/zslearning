@@ -5,7 +5,6 @@ function [costTotal, gradTotal] = trainingCost( theta, data, params )
 
 hiddenSize    = size(W{1}, 1);
 wordLen       = size(data.wordTable, 1);
-imageLen      = size(data.imgs, 1);
 numCategories = size(data.wordTable, 2);
 numImages     = size(data.imgs, 2);
 
@@ -21,12 +20,8 @@ z2words = W1_word * data.wordTable;
 % Input corresponding to image components
 z2image = bsxfun(@plus, W1_image * data.imgs, b{1});
 
-% [ [ z_w_i repeated m times for each image ] for all k categories ]
-t1 = z2words(:, reshape(repmat(1:numCategories, numImages, 1), 1, []));
-% [ z_im_1 .. z_im_m (all images) ] repeated k times for each category
-t2 = repmat(z2image, 1, numCategories);
-% a2 is the set of all word-image combinations (activated by f)
-a2 = params.f(t1 + t2);
+[ t1,t2 ] = meshgrid(1:numCategories, 1:numImages);
+a2 = params.f(z2words(:,t1(:)) + z2image(:,t2(:)));
 
 % Output layer
 % output is the set of final activations for all word-image combinations
@@ -84,7 +79,7 @@ gradW2 = sum(-sum_a2good + sum_a2, 2)';
 % Gradient of W1
 t1 = reshape(sum(reshape(fpa2', numImages, [])), numCategories, [])' * data.wordTable';
 t2 = sum_fpa2 * data.imgs';
-gradW1 = bsxfun(@times, W{2}', -sum_fpa2good * pgood' + [t1 t2]);
+gradW1 = bsxfun(@times, W{2}', -sum_fpa2good*pgood' + [t1 t2]);
 
 % Gradient of b1
 gradb1 = W{2}' .* sum(-sum_fpa2good + sum_fpa2, 2);

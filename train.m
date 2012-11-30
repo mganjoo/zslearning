@@ -109,7 +109,6 @@ if trainParams.maxPass >= trainParams.saveEvery
     statistics.testAvgRecalls = zeros(1, numSaves);
 end
 for passj = 1:trainParams.maxPass
-    t = zeros(1, numBatches);
     for batchj = 1:numBatches
         dataToUse = prepareData(imgs, categories, wordTable);
         
@@ -117,10 +116,7 @@ for passj = 1:trainParams.maxPass
         fprintf('Pass %d, batch %d\n', passj, batchj);
         % optimize and gather statistics
         
-        tic;
         [theta, cost, ~, output] = minFunc( @(p) trainingCost(p, dataToUse, trainParams), theta, options);
-        t(batchj) = toc;
-        
         statistics.costAfterBatch(1, (passj-1) * numBatches + batchj) = cost;
                         
         if batchj < numBatches
@@ -136,7 +132,6 @@ for passj = 1:trainParams.maxPass
 
         [imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, nextBatch);
     end
-    plot(1:batchj, t);
     
     % intermediate saves
     if mod(passj, trainParams.saveEvery) == 0
