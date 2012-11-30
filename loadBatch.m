@@ -1,4 +1,6 @@
-function [ data, categories, categoryNames ] = loadBatch( prefix, cifar_dir, batch )
+function [ data, categories, categoryNames ] = loadBatch( prefix, dataset, batch )
+
+cifar_dir = ['image_data/batches/' dataset];
 
 if nargin < 3
     t = load([cifar_dir sprintf('/%s.mat', prefix)]);

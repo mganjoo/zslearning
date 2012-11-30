@@ -1,21 +1,28 @@
-function [] = makeTestBatch(testX, testY, excludedCategories, prefix, noExclude, numPerCategory)
+function [] = makeTestBatch(testX, testY, dataset, excludedCategories, prefix, noExclude, numPerCategory)
 
 % Load categories
-b = load('image_data/cifar-100-matlab/meta96.mat');
-categoryNames = b.fine_label_names;
+b = load(['image_data/images/' dataset '/meta.mat']);
+categoryNames = b.label_names;
 
 % CIFAR constants (do not modify)
-TOTAL_IMAGES = 9600;
+if strcmp(dataset, 'cifar10') == true
+    TOTAL_IMAGES = 10000;
+elseif strcmp(dataset, 'cifar96') == true
+    TOTAL_IMAGES = 9600;
+else
+    error('Not a valid dataset');
+end
+
 totalCategories = length(categoryNames);
 MAX_NUM_PER_CATEGORY = TOTAL_IMAGES / totalCategories;
 
-if nargin < 6
+if nargin < 7
     numPerCategory = MAX_NUM_PER_CATEGORY;
-    if nargin < 5
+    if nargin < 6
         noExclude = false; % noExclude can be set to true if the set of "excludedCategories" is actually the entire set of categories to use
-        if nargin < 4
-            prefix = 'default_test_batch_96';
-            if nargin < 3 
+        if nargin < 5
+            prefix = 'default_test_batch';
+            if nargin < 4 
                 excludedCategories = {};
             else
                 if noExclude == true
@@ -55,14 +62,15 @@ for i = 1:totalCategories
     k = k + 1;
 end
 
+outputDir = ['image_data/batches/' dataset];
 % Create directory if it doesn't exist
-if not(exist('image_data/cifar-features', 'dir'))
-    mkdir('image_data/cifar-features');
+if not(exist(outputDir, 'dir'))
+    mkdir(outputDir);
 end
 
 batch = batch(randperm(length(batch)));
 disp('Output test batch');
-t = matfile(sprintf('image_data/cifar-features/%s.mat', prefix));
+t = matfile(sprintf([outputDir '/%s.mat'], prefix));
 t.X = testX(:, batch);
 testYc = arrayfun(@(x) find(categorySet == x), testY(:, batch));
 t.Y = testYc;

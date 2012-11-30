@@ -1,5 +1,7 @@
-OUTPUT_DIR = '../image_data/';
-CIFAR_DIR  = '../image_data/cifar-100-matlab/';
+function [] = buildFeatures(dataset)
+
+OUTPUT_DIR = ['../image_data/features/' dataset];
+CIFAR_DIR  = ['../image_data/images/' dataset];
 
 %%%%% Configuration
 addpath ../toolbox/minFunc;
@@ -7,17 +9,15 @@ rfSize = 6;
 numBases=1600;
 CIFAR_DIM=[32 32 3];
 alpha = 0.25;  %% CV-chosen value for soft-threshold function.
-lambda = 1.0;  %% CV-chosen sparse coding penalty.
 encoder='thresh';
 encParam=alpha; % Use soft threshold encoder.
 
 %% Load CIFAR training data
 fprintf('Loading training data...\n');
-f1=load([CIFAR_DIR '/train96.mat']);
+f1=load([CIFAR_DIR '/train.mat']);
 
 trainX = double(f1.data');
-trainY_coarse = double(f1.coarse_labels);
-trainY_fine = double(f1.fine_labels);
+trainY = double(f1.labels);
 clear f1;
 
 % extract random patches
@@ -58,8 +58,7 @@ trainX   = trainXCs';
 fprintf('Loading test data...\n');
 f1 = load([CIFAR_DIR '/test96.mat']);
 testX = double(f1.data');
-testY_coarse = double(f1.coarse_labels);
-testY_fine = double(f1.fine_labels);
+testY = double(f1.labels);
 clear f1;
 
 % compute testing features and standardize
@@ -69,6 +68,8 @@ testX   = testXCs';
 
 % save files
 fprintf('Saving train data...\n');
-save([OUTPUT_DIR 'train100.mat'], 'trainX', 'trainY_coarse', 'trainY_fine', '-v7.3');
+save([OUTPUT_DIR 'train.mat'], 'trainX', 'trainY', '-v7.3');
 fprintf('Saving test data...\n');
-save([OUTPUT_DIR 'test100.mat'], 'testX', 'testY_coarse', 'testY_fine', '-v7.3');
+save([OUTPUT_DIR 'test.mat'], 'testX', 'testY', '-v7.3');
+
+end

@@ -1,11 +1,11 @@
-function [ categoryNames ] = loadCategoryNames( excludedCategories )
+function [ categoryNames ] = loadCategoryNames( excludedCategories, dataset )
 
 if nargin < 1
     excludedCategories = {};
 end
 
-b = load('image_data/cifar-100-matlab/meta96.mat');
-allCategoryNames = b.fine_label_names;
+b = load(['image_data/images/' dataset '/meta.mat']);
+allCategoryNames = b.label_names;
 
 categoryNames = cell(length(allCategoryNames) - length(excludedCategories), 1);
 k = 1;

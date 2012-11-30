@@ -1,4 +1,4 @@
-function [ guessedCategoriesDebug, results ] = test( filename, batchFilePrefix )
+function [ guessedCategoriesDebug, results ] = test( filename, batchFilePrefix, dataset )
 
 addpath toolbox/;
 
@@ -6,11 +6,10 @@ t = load(filename, 'theta', 'trainParams');
 
 % Additional options
 disp('Loading test images');
-batchFilePath   = 'image_data/cifar-features';
-[imgs, categories, originalCategoryNames] = loadBatch(batchFilePrefix, batchFilePath);
+[imgs, categories, originalCategoryNames] = loadBatch(batchFilePrefix, dataset);
 
 %% Load word representations
-testCategoryNames = loadCategoryNames({ 'lion', 'orange', 'camel' });
+testCategoryNames = loadCategoryNames({ 'lion', 'orange', 'camel' }, dataset);
 w = load(['word_data/' t.trainParams.wordDataset '/wordTable.mat']);
 trainParams.embeddingSize = size(w.wordTable, 1);
 wordTable = zeros(trainParams.embeddingSize, length(testCategoryNames));
