@@ -64,6 +64,7 @@ trainParams.outputSize = size(wordTable, 1);
 
 %% First check the gradient of our minimizer
 dataToUse.imgs = rand(2, 5);
+dataToUse.categories = randi(5, 1, 5);
 dataToUse.wordTable = wordTable(1:2, 1:5);
 debugOptions = struct;
 debugOptions.Method = 'lbfgs';
@@ -113,6 +114,7 @@ for passj = 1:trainParams.maxPass
         % optimize and gather statistics
         
         dataToUse.imgs = imgs;
+        dataToUse.categories = categories;
         [theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams), theta, options);
         statistics.costAfterBatch(1, (passj-1) * numBatches + batchj) = cost;
                         
@@ -138,7 +140,7 @@ for passj = 1:trainParams.maxPass
         statistics.avgPrecisions(passj / trainParams.saveEvery) = results.avgPrecision;
         statistics.avgRecalls(passj / trainParams.saveEvery) = results.avgRecall;
         filename = sprintf('%s/params_pass_%d.mat', trainParams.outputPath, passj);
-        save(filename, 'theta', 'trainParams');
+        save(filename, 'theta', 'trainParams', 'statistics');
         fprintf('----------------------------------------\n');
         fprintf('Testing after pass %d\n', passj);
         [ ~, tresults ] = mapTest(filename, 'zeroshot_test_batch', trainParams.imageDataset);
