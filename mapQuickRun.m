@@ -1,6 +1,6 @@
 % Mini testing only
 
-trainParams.wordDataset     = 'turian.200';
+trainParams.wordDataset     = 'acl';
 trainParams.imageDataset    = 'cifar10';
 trainParams.batchFilePrefix = 'mini_batch';
 trainParams.maxPass         = 3;

@@ -1,4 +1,4 @@
-function [ guessedCategoriesDebug, results ] = test( filename, batchFilePrefix, dataset )
+function [ guessedCategoriesDebug, results ] = mapTest( filename, batchFilePrefix, dataset )
 
 addpath toolbox/;
 
@@ -26,6 +26,6 @@ end
 clear w;
 
 disp('Test results');
-[ guessedCategoriesDebug, results ] = doEvaluate(imgs, categories, originalCategoryNames, testCategoryNames, wordTable, t.theta, t.trainParams);
+[ guessedCategoriesDebug, results ] = mapDoEvaluate(imgs, categories, originalCategoryNames, testCategoryNames, wordTable, t.theta, t.trainParams);
 
 end
