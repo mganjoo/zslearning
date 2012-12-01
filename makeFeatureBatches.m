@@ -64,11 +64,11 @@ end
 for i = 1:numBatches
     batches{i} = batches{i}(randperm(length(batches{i})));
     fprintf('Output batch %d\n', i);
-    t = matfile(sprintf([outputDir '/%s_%d.mat'], prefix, i));
-    t.X = trainX(:, batches{i});
+    X = trainX(:, batches{i});
     trainYc = arrayfun(@(x) find(categorySet == x), trainY(:, batches{i}));
-    t.Y = trainYc;
-    t.names = categoryNames(categorySet);
+    Y = trainYc;
+    names = categoryNames(categorySet);
+    save(sprintf([outputDir '/%s_%d.mat'], prefix, i), 'X', 'Y', 'names', '-v7.3');
 end
 
 end

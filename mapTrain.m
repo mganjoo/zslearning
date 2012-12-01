@@ -6,8 +6,8 @@ addpath toolbox/pwmetric/;
 fields = {{'wordDataset',         'acl'}; % type of embedding dataset to use ('turian.200', 'acl')
           {'imageDataset',        'cifar10'};    % CIFAR dataset type
           {'batchFilePrefix',     'mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'maxPass',             150};     % maximum number of passes through training data
-          {'maxIter',             5};      % maximum number of minFunc iterations on a batch
+          {'maxPass',             1};     % maximum number of passes through training data
+          {'maxIter',             400};      % maximum number of minFunc iterations on a batch
           {'fixRandom',           false};  % whether to fix the random number generator
           {'outputPath',          'savedParams'}; % the path to output files to
           {'saveEvery',           5};     % number of passes after which we need to do intermediate saves
@@ -32,6 +32,8 @@ end
 
 trainParams.f = @tanh;             % function to use in the neural network activations
 trainParams.f_prime = @tanh_prime; % derivative of f
+trainParams.doEvaluate = true;
+trainParams.testFilePrefix = 'zeroshot_test_batch';
 
 % minFunc options
 options.Method = 'lbfgs';
@@ -76,12 +78,34 @@ debugParams.inputSize = size(dataToUse.imgs, 1);
 debugParams.outputSize = size(dataToUse.wordTable, 1);
 debugParams.f = trainParams.f;
 debugParams.f_prime = trainParams.f_prime;
+debugParams.doEvaluate = false;
 debugTheta = mapInitParameters(debugParams);
 [~, ~, ~, ~] = minFunc( @(p) mapTrainingCost(p, dataToUse, debugParams), debugTheta, debugOptions);
 
 %% Load validation batch
 disp('Loading validation batch');
-[validImgs, validCategories, ~] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, numBatches+1);
+[dataToUse.validImgs, dataToUse.validCategories, ~] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, numBatches+1);
+
+%% Load test images
+disp('Loading test images');
+dataset = trainParams.imageDataset;
+[dataToUse.testImgs, dataToUse.testCategories, dataToUse.testOriginalCategoryNames] = loadBatch(trainParams.testFilePrefix, trainParams.imageDataset);
+
+if strcmp(dataset, 'cifar10') == true
+    testCategoryNames = loadCategoryNames({ 'truck' }, dataset);
+elseif strcmp(dataset, 'cifar96') == true
+    testCategoryNames = loadCategoryNames({ 'lion', 'orange', 'camel' }, dataset);
+else
+    error('Not a valid dataset');
+end
+w = load(['word_data/' trainParams.wordDataset '/' dataset '/wordTable.mat']);
+trainParams.embeddingSize = size(w.wordTable, 1);
+dataToUse.testWordTable = zeros(trainParams.embeddingSize, length(testCategoryNames));
+for categoryIndex = 1:length(testCategoryNames)
+    icategoryWord = ismember(w.label_names, testCategoryNames(categoryIndex)) == true;
+    dataToUse.testWordTable(:, categoryIndex) = w.wordTable(:, icategoryWord);
+end
+dataToUse.testCategoryNames = testCategoryNames;
 
 %% Initialize actual weights
 disp('Initializing parameters');
@@ -92,68 +116,12 @@ if not(exist(trainParams.outputPath, 'dir'))
     mkdir(trainParams.outputPath);
 end
 
-%% Begin batches of training
-display(['Number of batches: ' num2str(numBatches)]);
-statistics.costAfterBatch = zeros(1, numBatches * trainParams.maxPass);
-statistics.time = zeros(1, trainParams.maxPass);
-if trainParams.maxPass >= trainParams.saveEvery
-    numSaves = floor(trainParams.maxPass / trainParams.saveEvery);
-    statistics.accuracies = zeros(1, numSaves);
-    statistics.avgPrecisions = zeros(1, numSaves);
-    statistics.avgRecalls = zeros(1, numSaves);
-    statistics.testAccuracies = zeros(1, numSaves);
-    statistics.testAvgPrecisions = zeros(1, numSaves);
-    statistics.testAvgRecalls = zeros(1, numSaves);
-end
 globalStart = tic;
-for passj = 1:trainParams.maxPass
-    localStart = tic;
-    for batchj = 1:numBatches
-        fprintf('----------------------------------------\n');
-        fprintf('Pass %d, batch %d\n', passj, batchj);
-        % optimize and gather statistics
-        
-        dataToUse.imgs = imgs;
-        dataToUse.categories = categories;
-        [theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams), theta, options);
-        statistics.costAfterBatch(1, (passj-1) * numBatches + batchj) = cost;
-                        
-        if batchj < numBatches
-            nextBatch = batchj + 1;
-        else
-            nextBatch = 1;
-        end
-        
-        if mod(passj, trainParams.saveEvery) == 0
-            % test on current training batch
-            mapDoEvaluate(imgs, categories, categoryNames, categoryNames, wordTable, theta, trainParams);
-        end
-        
-        [imgs, categories, ~] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, nextBatch);
-    end
-    if mod(passj, trainParams.saveEvery) == 0
-        % test on validation batch
-        fprintf('----------------------------------------\n');
-        fprintf('Validation after pass %d\n', passj);
-        [ ~, results ] = mapDoEvaluate(validImgs, validCategories, categoryNames, categoryNames, wordTable, theta, trainParams);
-        statistics.accuracies(passj / trainParams.saveEvery) = results.accuracy;
-        statistics.avgPrecisions(passj / trainParams.saveEvery) = results.avgPrecision;
-        statistics.avgRecalls(passj / trainParams.saveEvery) = results.avgRecall;
-        filename = sprintf('%s/params_pass_%d.mat', trainParams.outputPath, passj);
-        save(filename, 'theta', 'trainParams', 'statistics');
-        fprintf('----------------------------------------\n');
-        fprintf('Testing after pass %d\n', passj);
-        [ ~, tresults ] = mapTest(filename, 'zeroshot_test_batch', trainParams.imageDataset);
-        statistics.testAccuracies(passj / trainParams.saveEvery) = tresults.accuracy;
-        statistics.testAvgPrecisions(passj / trainParams.saveEvery) = tresults.avgPrecision;
-        statistics.testAvgRecalls(passj / trainParams.saveEvery) = tresults.avgRecall;
-        if tresults.accuracy >= 0.4
-            break;
-        end
-    else
-        statistics.time(passj) = toc(localStart);
-    end
-end
+
+dataToUse.imgs = imgs;
+dataToUse.categories = categories;
+dataToUse.categoryNames = categoryNames;
+[theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams ), theta, options);
 
 gtime = toc(globalStart);
 fprintf('Total time: %f s\n', gtime);
@@ -161,4 +129,3 @@ fprintf('Total time: %f s\n', gtime);
 %% Save learned parameters
 disp('Saving final learned parameters');
 save(sprintf('%s/params_final.mat', trainParams.outputPath), 'theta', 'trainParams');
-save(sprintf('%s/statistics.mat', trainParams.outputPath), 'statistics');

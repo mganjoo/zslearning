@@ -1,4 +1,4 @@
-function [ guessedCategoriesDebug, results ] = doEvaluate( images, categories, originalCategoryNames, testCategoryNames, testWordTable, theta, trainParams )
+function [ guessedCategoriesDebug, results ] = doEvaluate( images, categories, originalCategoryNames, testCategoryNames, testWordTable, theta, trainParams, doPrint )
 
 [Wt, bt] = stack2param(theta, trainParams.decodeInfo);
 numImages = size(images, 2);
@@ -51,10 +51,12 @@ results.avgPrecision = mean(t(isfinite(t), :));
 t = truePos' ./ sum(confusion, 1);
 results.avgRecall = mean(t(:, isfinite(t)));
 
-disp(['Accuracy: ' num2str(results.accuracy)]);
-disp(['Averaged precision: ' num2str(results.avgPrecision)]);
-disp(['Averaged recall: ' num2str(results.avgRecall)]);
-displayConfusionMatrix(confusion, testCategoryNames);
+if doPrint == true
+    disp(['Accuracy: ' num2str(results.accuracy)]);
+    disp(['Averaged precision: ' num2str(results.avgPrecision)]);
+    disp(['Averaged recall: ' num2str(results.avgRecall)]);
+    displayConfusionMatrix(confusion, testCategoryNames);
+end
 
 end
 
