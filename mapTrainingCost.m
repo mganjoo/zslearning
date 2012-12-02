@@ -13,10 +13,10 @@ a2 = a2All(:, 1:numImages);
 
 lambda = params.lambda;
 reg = 0.5 * lambda * (sum(sum(W{1} .^ 2)) + sum(sum(W{2} .^ 2)) + sum(b{1} .^ 2) + sum(b{2} .^ 2));
-cost = 0.5 * (1 / numImages * sum(sum((w - a2).^2)) + 1 / numAllImages * sum(sum((hAll-allImgs).^2))) + reg;
+cost = 0.5 * (1 / numImages * sum(sum((w - a2).^2)) + params.autoencMult / numAllImages * sum(sum((hAll-allImgs).^2))) + reg;
 
 % Find error signal terms
-del3All = (hAll - allImgs) / numAllImages;
+del3All = params.autoencMult * (hAll - allImgs) / numAllImages;
 del2All = W{2}' * del3All .* params.f_prime(a2All);
 del2 = (a2 - w) / numImages .* params.f_prime(a2);
 

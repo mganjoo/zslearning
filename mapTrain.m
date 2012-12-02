@@ -8,7 +8,7 @@ fields = {{'wordDataset',         'acl'}; % type of embedding dataset to use ('t
           {'batchFilePrefix',     'mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'zeroFilePrefix',      'zeroshot_mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'maxPass',             1};     % maximum number of passes through training data
-          {'maxIter',             400};      % maximum number of minFunc iterations on a batch
+          {'maxIter',             20};      % maximum number of minFunc iterations on a batch
           {'fixRandom',           false};  % whether to fix the random number generator
           {'outputPath',          'savedParams'}; % the path to output files to
           {'lambda',              1E-3};  % regularization parameter
@@ -36,6 +36,7 @@ trainParams.f = @tanh;             % function to use in the neural network activ
 trainParams.f_prime = @tanh_prime; % derivative of f
 trainParams.doEvaluate = true;
 trainParams.testFilePrefix = 'zeroshot_test_batch';
+trainParams.autoencMult = 0.01;
 
 % minFunc options
 options.Method = 'lbfgs';
@@ -83,6 +84,7 @@ debugParams.outputSize = size(dataToUse.wordTable, 1);
 debugParams.f = trainParams.f;
 debugParams.f_prime = trainParams.f_prime;
 debugParams.lambda = trainParams.lambda;
+debugParams.autoencMult = 1E-2;
 debugParams.doEvaluate = false;
 [ debugTheta, debugParams.decodeInfo ] = mapInitParameters(debugParams);
 [~, ~, ~, ~] = minFunc( @(p) mapTrainingCost(p, dataToUse, debugParams), debugTheta, debugOptions);
@@ -127,7 +129,11 @@ dataToUse.imgs = imgs;
 dataToUse.zeroimgs = zeroimgs;
 dataToUse.categories = categories;
 dataToUse.categoryNames = categoryNames;
-[theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams ), theta, options);
+
+for i = 1:10
+    [theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams ), theta, options);
+    trainParms.autoencMult = trainParams.autoencMult + 0.099;
+end
 
 gtime = toc(globalStart);
 fprintf('Total time: %f s\n', gtime);
