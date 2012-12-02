@@ -130,9 +130,9 @@ dataToUse.zeroimgs = zeroimgs;
 dataToUse.categories = categories;
 dataToUse.categoryNames = categoryNames;
 
-for i = 1:10
+while trainParams.autoencMult < 1
     [theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams ), theta, options);
-    trainParms.autoencMult = trainParams.autoencMult + 0.099;
+    trainParams.autoencMult = trainParams.autoencMult + 0.099;
 end
 
 gtime = toc(globalStart);
