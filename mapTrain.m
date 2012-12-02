@@ -6,10 +6,12 @@ addpath toolbox/pwmetric/;
 fields = {{'wordDataset',         'acl'}; % type of embedding dataset to use ('turian.200', 'acl')
           {'imageDataset',        'cifar10'};    % CIFAR dataset type
           {'batchFilePrefix',     'mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
+          {'zeroFilePrefix',      'zeroshot_mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'maxPass',             1};     % maximum number of passes through training data
           {'maxIter',             400};      % maximum number of minFunc iterations on a batch
           {'fixRandom',           false};  % whether to fix the random number generator
           {'outputPath',          'savedParams'}; % the path to output files to
+          {'lambda',              1E-3};  % regularization parameter
           {'saveEvery',           5};     % number of passes after which we need to do intermediate saves
 };
 
@@ -49,6 +51,7 @@ clear files;
 %% Load first batch of training images
 disp('Loading first batch of training images and initializing parameters');
 [imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, 1);
+[zeroimgs, ~, ~] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
 trainParams.imageColumnSize = size(imgs, 1); % the length of the column representation of a raw image
 
 %% Load word representations
@@ -66,6 +69,7 @@ trainParams.outputSize = size(wordTable, 1);
 
 %% First check the gradient of our minimizer
 dataToUse.imgs = rand(2, 5);
+dataToUse.zeroimgs = rand(2, 3);
 dataToUse.categories = randi(5, 1, 5);
 dataToUse.wordTable = wordTable(1:2, 1:5);
 debugOptions = struct;
@@ -78,8 +82,9 @@ debugParams.inputSize = size(dataToUse.imgs, 1);
 debugParams.outputSize = size(dataToUse.wordTable, 1);
 debugParams.f = trainParams.f;
 debugParams.f_prime = trainParams.f_prime;
+debugParams.lambda = trainParams.lambda;
 debugParams.doEvaluate = false;
-debugTheta = mapInitParameters(debugParams);
+[ debugTheta, debugParams.decodeInfo ] = mapInitParameters(debugParams);
 [~, ~, ~, ~] = minFunc( @(p) mapTrainingCost(p, dataToUse, debugParams), debugTheta, debugOptions);
 
 %% Load validation batch
@@ -109,7 +114,7 @@ dataToUse.testCategoryNames = testCategoryNames;
 
 %% Initialize actual weights
 disp('Initializing parameters');
-theta = mapInitParameters(trainParams);
+[ theta, trainParams.decodeInfo ] = mapInitParameters(trainParams);
 dataToUse.wordTable = wordTable;
 
 if not(exist(trainParams.outputPath, 'dir'))
@@ -119,6 +124,7 @@ end
 globalStart = tic;
 
 dataToUse.imgs = imgs;
+dataToUse.zeroimgs = zeroimgs;
 dataToUse.categories = categories;
 dataToUse.categoryNames = categoryNames;
 [theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams ), theta, options);
