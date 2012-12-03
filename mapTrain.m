@@ -7,11 +7,14 @@ fields = {{'wordDataset',         'acl'}; % type of embedding dataset to use ('t
           {'imageDataset',        'cifar10'};    % CIFAR dataset type
           {'batchFilePrefix',     'mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'zeroFilePrefix',      'zeroshot_mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'maxPass',             1};     % maximum number of passes through training data
-          {'maxIter',             20};      % maximum number of minFunc iterations on a batch
+          {'maxPass',             10};     % maximum number of passes through training data
+          {'maxIter',             20};     % maximum number of minFunc iterations on a batch
+          {'maxAutoencIter',      150};     % maximum number of minFunc iterations on a batch
           {'fixRandom',           false};  % whether to fix the random number generator
           {'outputPath',          'savedParams'}; % the path to output files to
           {'lambda',              1E-3};  % regularization parameter
+          {'sparsityParam',       0.035}; % desired average activation of the hidden units.
+          {'beta',                5};     % weight of sparsity penalty term
           {'saveEvery',           5};     % number of passes after which we need to do intermediate saves
 };
 
@@ -32,8 +35,8 @@ if trainParams.fixRandom == true
     RandStream.setGlobalStream(RandStream('mcg16807','Seed', 0));
 end
 
-trainParams.f = @tanh;             % function to use in the neural network activations
-trainParams.f_prime = @tanh_prime; % derivative of f
+trainParams.f = @sigmoid;             % function to use in the neural network activations
+trainParams.f_prime = @sigmoid_prime; % derivative of f
 trainParams.doEvaluate = true;
 trainParams.testFilePrefix = 'zeroshot_test_batch';
 trainParams.autoencMult = 0.01;
@@ -41,7 +44,6 @@ trainParams.autoencMult = 0.01;
 % minFunc options
 options.Method = 'lbfgs';
 options.display = 'on';
-options.MaxIter = trainParams.maxIter;
 
 % Additional options
 batchFilePath   = ['image_data/batches/' trainParams.imageDataset];
@@ -53,7 +55,6 @@ clear files;
 disp('Loading first batch of training images and initializing parameters');
 [imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, 1);
 [zeroimgs, ~, ~] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
-trainParams.imageColumnSize = size(imgs, 1); % the length of the column representation of a raw image
 
 %% Load word representations
 disp('Loading word representations');
@@ -84,9 +85,12 @@ debugParams.outputSize = size(dataToUse.wordTable, 1);
 debugParams.f = trainParams.f;
 debugParams.f_prime = trainParams.f_prime;
 debugParams.lambda = trainParams.lambda;
+debugParams.beta = trainParams.beta;
+debugParams.sparsityParam = trainParams.sparsityParam;
 debugParams.autoencMult = 1E-2;
 debugParams.doEvaluate = false;
 [ debugTheta, debugParams.decodeInfo ] = mapInitParameters(debugParams);
+[~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, debugParams), debugTheta, debugOptions);
 [~, ~, ~, ~] = minFunc( @(p) mapTrainingCost(p, dataToUse, debugParams), debugTheta, debugOptions);
 
 %% Load validation batch
@@ -130,9 +134,15 @@ dataToUse.zeroimgs = zeroimgs;
 dataToUse.categories = categories;
 dataToUse.categoryNames = categoryNames;
 
-while trainParams.autoencMult < 1
+options.MaxIter = trainParams.maxAutoencIter;
+[theta, cost, ~, output] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, trainParams ), theta, options);
+save(sprintf('%s/autoenc_params.mat', trainParams.outputPath), 'theta', 'trainParams');
+
+options.MaxIter = trainParams.maxIter;
+initMult = trainParams.autoencMult;
+for i = 1:trainParams.maxPass
     [theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams ), theta, options);
-    trainParams.autoencMult = trainParams.autoencMult + 0.099;
+    trainParams.autoencMult = trainParams.autoencMult + (1-initMult) / 10;
 end
 
 gtime = toc(globalStart);
