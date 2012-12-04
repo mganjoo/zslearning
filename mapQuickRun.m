@@ -7,4 +7,5 @@ trainParams.maxPass         = 3;
 trainParams.maxIter         = 3;
 trainParams.saveEvery       = 2;
 trainParams.outputPath      = 'map-test';
+trainParams.maxAutoencIter  = 10;
 mapTrain;

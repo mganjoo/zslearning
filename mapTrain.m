@@ -9,12 +9,15 @@ fields = {{'wordDataset',         'acl'}; % type of embedding dataset to use ('t
           {'zeroFilePrefix',      'zeroshot_mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'maxPass',             10};     % maximum number of passes through training data
           {'maxIter',             20};     % maximum number of minFunc iterations on a batch
-          {'maxAutoencIter',      150};     % maximum number of minFunc iterations on a batch
+          {'maxAutoencIter',      30};     % maximum number of minFunc iterations on a batch
           {'fixRandom',           false};  % whether to fix the random number generator
           {'outputPath',          'savedParams'}; % the path to output files to
           {'lambda',              1E-3};  % regularization parameter
           {'sparsityParam',       0.035}; % desired average activation of the hidden units.
+          {'disableAutoencoder',  false}; % whether to disable autoencoder
+          {'costFunction',        @mapOneShotCost}; % training cost function
           {'beta',                5};     % weight of sparsity penalty term
+          {'oneShotMult',         5.0};   % multiplier for one-shot multiplier
           {'saveEvery',           5};     % number of passes after which we need to do intermediate saves
 };
 
@@ -54,15 +57,23 @@ clear files;
 %% Load first batch of training images
 disp('Loading first batch of training images and initializing parameters');
 [imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, 1);
-[zeroimgs, ~, ~] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
+[zeroimgs, zerocategories, zeroCategoryNames] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
+t = randperm(size(zeroimgs, 2));
+zeroimgs = zeroimgs(:, t);
+zerocategories = zerocategories(:, t);
 
 %% Load word representations
 disp('Loading word representations');
 t = load(['word_data/' trainParams.wordDataset '/' trainParams.imageDataset '/wordTable.mat']);
-wordTable = zeros(size(t.wordTable, 1), length(categoryNames));
+wordTable = zeros(size(t.wordTable, 1), length(categoryNames) + length(zeroCategoryNames));
 for i = 1:length(categoryNames)
     j = ismember(t.label_names, categoryNames{i}) == true;
     wordTable(:, i) = t.wordTable(:, j);
+end
+for i = 1:length(zeroCategoryNames)
+    j = ismember(t.label_names, zeroCategoryNames{i}) == true;
+    wordTable(:, i + length(categoryNames)) = t.wordTable(:, j);
+    zerocategories = zerocategories + length(categoryNames);
 end
 clear t;
 
@@ -73,7 +84,8 @@ trainParams.outputSize = size(wordTable, 1);
 dataToUse.imgs = rand(2, 5);
 dataToUse.zeroimgs = rand(2, 3);
 dataToUse.categories = randi(5, 1, 5);
-dataToUse.wordTable = wordTable(1:2, 1:5);
+dataToUse.zerocategories = ones(1, 3) + 5;
+dataToUse.wordTable = wordTable(1:2, 1:6);
 debugOptions = struct;
 debugOptions.Method = 'lbfgs';
 debugOptions.display = 'off';
@@ -88,10 +100,13 @@ debugParams.lambda = trainParams.lambda;
 debugParams.beta = trainParams.beta;
 debugParams.sparsityParam = trainParams.sparsityParam;
 debugParams.autoencMult = 1E-2;
+debugParams.oneShotMult = 5.0;
 debugParams.doEvaluate = false;
 [ debugTheta, debugParams.decodeInfo ] = mapInitParameters(debugParams);
-[~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, debugParams), debugTheta, debugOptions);
-[~, ~, ~, ~] = minFunc( @(p) mapTrainingCost(p, dataToUse, debugParams), debugTheta, debugOptions);
+if not(trainParams.disableAutoencoder)
+    [~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, debugParams), debugTheta, debugOptions);
+end
+[~, ~, ~, ~] = minFunc( @(p) trainParams.costFunction(p, dataToUse, debugParams), debugTheta, debugOptions);
 
 %% Load validation batch
 disp('Loading validation batch');
@@ -132,16 +147,19 @@ globalStart = tic;
 dataToUse.imgs = imgs;
 dataToUse.zeroimgs = zeroimgs;
 dataToUse.categories = categories;
+dataToUse.zerocategories = zerocategories;
 dataToUse.categoryNames = categoryNames;
 
-options.MaxIter = trainParams.maxAutoencIter;
-[theta, cost, ~, output] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, trainParams ), theta, options);
-save(sprintf('%s/autoenc_params.mat', trainParams.outputPath), 'theta', 'trainParams');
+if not(trainParams.disableAutoencoder)
+    options.MaxIter = trainParams.maxAutoencIter;
+    [theta, cost, ~, output] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, trainParams ), theta, options);
+    save(sprintf('%s/autoenc_params.mat', trainParams.outputPath), 'theta', 'trainParams');
+end
 
 options.MaxIter = trainParams.maxIter;
 initMult = trainParams.autoencMult;
 for i = 1:trainParams.maxPass
-    [theta, cost, ~, output] = minFunc( @(p) mapTrainingCost(p, dataToUse, trainParams ), theta, options);
+    [theta, cost, ~, output] = minFunc( @(p) trainParams.costFunction(p, dataToUse, trainParams ), theta, options);
     trainParams.autoencMult = trainParams.autoencMult + (1-initMult) / 10;
 end
 
