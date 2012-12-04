@@ -11,7 +11,7 @@ a2 = params.f(bsxfun(@plus, W{1} * allImgs, b{1}));
 h = bsxfun(@plus, W{2} * a2, b{2});
 
 % Calculate overall cost function
-rhoHat = sum(a2, 2) / numImages;
+rhoHat = (sum(a2, 2) / numImages + 1) / 2; % scale to [0,1] since we're using tanh
 sparsity = params.beta * sum(params.sparsityParam * log(params.sparsityParam ./ rhoHat) ...
     + (1 - params.sparsityParam) * log((1 - params.sparsityParam) ./ (1 - rhoHat)));
 reg = 0.5 * params.lambda * (sum(sum(W{1} .^ 2)) + sum(sum(W{2} .^ 2)));
@@ -20,7 +20,7 @@ cost = 0.5 / numImages * sum(sum((h - allImgs) .^ 2)) + reg + sparsity;
 % Find error signal terms
 del3 = -(allImgs - h);
 sparsityMult = params.beta * (-(params.sparsityParam ./ rhoHat) + (1 - params.sparsityParam) ./ (1 - rhoHat));
-del2 = bsxfun(@plus, W{2}' * del3, sparsityMult) .* params.f_prime(a2);
+del2 = bsxfun(@plus, W{2}' * del3, sparsityMult * 0.5) .* params.f_prime(a2);
 
 % Calculate gradients
 W2grad = del3 * a2' / numImages + params.lambda * W{2};

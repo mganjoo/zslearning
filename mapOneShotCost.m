@@ -16,7 +16,7 @@ hAll = bsxfun(@plus, W{2} * a2All, b{2});
 w = fWordTable(:, data.categories);
 a2 = a2All(:, 1:numImages);
 
-rhoHat = sum(a2All, 2) / numAllImages;
+rhoHat = (sum(a2All, 2) / numAllImages + 1) / 2; % scale to [0,1] since we're using tanh
 lambda = params.lambda;
 reg = 0.5 * lambda * (sum(sum(W{1} .^ 2)) + sum(sum(W{2} .^ 2)) + sum(b{1} .^ 2) + sum(b{2} .^ 2));
 sparsity = params.beta * sum(params.sparsityParam * log(params.sparsityParam ./ rhoHat) ...
@@ -26,7 +26,7 @@ cost = 0.5 * (1 / numImages * (sum(sum((w(:,1:end-1) - a2(:,1:end-1)).^2)) + par
 % Find error signal terms
 del3All = params.autoencMult * (hAll - allImgs);
 sparsityMult = params.beta * (-(params.sparsityParam ./ rhoHat) + (1 - params.sparsityParam) ./ (1 - rhoHat));
-del2All = bsxfun(@plus, W{2}' * del3All, params.autoencMult * sparsityMult) .* params.f_prime(a2All);
+del2All = bsxfun(@plus, W{2}' * del3All, params.autoencMult * sparsityMult * 0.5) .* params.f_prime(a2All);
 del2 = ([a2(:,1:end-1) - w(:,1:end-1), params.oneShotMult*(a2(:,end) - w(:,end))] / numImages) .* params.f_prime(a2);
 
 % Calculate gradients

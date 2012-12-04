@@ -5,19 +5,19 @@ addpath toolbox/pwmetric/;
 %% Model Parameters
 fields = {{'wordDataset',         'acl'}; % type of embedding dataset to use ('turian.200', 'acl')
           {'imageDataset',        'cifar10'};    % CIFAR dataset type
-          {'batchFilePrefix',     'mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'zeroFilePrefix',      'zeroshot_mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'maxPass',             10};     % maximum number of passes through training data
+          {'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
+          {'zeroFilePrefix',      'zeroshot_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'maxIter',             20};     % maximum number of minFunc iterations on a batch
-          {'maxAutoencIter',      30};     % maximum number of minFunc iterations on a batch
+          {'maxPass',             10};     % maximum number of passes through training data
+          {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
+          {'disableAutoencoder',  true};  % whether to disable autoencoder
           {'fixRandom',           false};  % whether to fix the random number generator
-          {'outputPath',          'savedParams'}; % the path to output files to
           {'lambda',              1E-3};  % regularization parameter
-          {'sparsityParam',       0.035}; % desired average activation of the hidden units.
-          {'disableAutoencoder',  false}; % whether to disable autoencoder
-          {'costFunction',        @mapOneShotCost}; % training cost function
-          {'beta',                5};     % weight of sparsity penalty term
           {'oneShotMult',         5.0};   % multiplier for one-shot multiplier
+          {'costFunction',        @mapTrainingCost}; % training cost function
+          {'autoencMultStart',    0.01};   % starting value for autoenc mult
+          {'sparsityParam',       0.035}; % desired average activation of the hidden units.
+          {'beta',                5};     % weight of sparsity penalty term
           {'saveEvery',           5};     % number of passes after which we need to do intermediate saves
 };
 
@@ -30,6 +30,15 @@ for i = 1:length(fields)
     end
 end
 
+if not(isfield(trainParams, 'outputPath'))
+    if strcmp(func2str(trainParams.costFunction), 'mapOneShotCost') == 0
+        trainParams.outputPath = sprintf('map-iter_%d-pass_%d-ae_%d-aeiter_%d-reg_%.0e-1s_%.1f', trainParams.maxIter, trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda, trainParams.oneShotMult);
+    else
+        trainParams.outputPath = sprintf('map-iter_%d-pass_%d-ae_%d-aeiter_%d-reg_%.0e', trainParams.maxIter, trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda);
+    end
+end
+
+fprintf('<BEGIN_EXPERIMENT %s>\n', trainParams.outputPath);
 disp('Parameters:');
 disp(trainParams);
 
@@ -38,11 +47,11 @@ if trainParams.fixRandom == true
     RandStream.setGlobalStream(RandStream('mcg16807','Seed', 0));
 end
 
-trainParams.f = @sigmoid;             % function to use in the neural network activations
-trainParams.f_prime = @sigmoid_prime; % derivative of f
+trainParams.f = @tanh;             % function to use in the neural network activations
+trainParams.f_prime = @tanh_prime; % derivative of f
 trainParams.doEvaluate = true;
 trainParams.testFilePrefix = 'zeroshot_test_batch';
-trainParams.autoencMult = 0.01;
+trainParams.autoencMult = trainParams.autoencMultStart;
 
 % minFunc options
 options.Method = 'lbfgs';
@@ -81,11 +90,11 @@ trainParams.inputSize = size(imgs, 1);
 trainParams.outputSize = size(wordTable, 1);
 
 %% First check the gradient of our minimizer
-dataToUse.imgs = rand(2, 5);
-dataToUse.zeroimgs = rand(2, 3);
-dataToUse.categories = randi(5, 1, 5);
-dataToUse.zerocategories = ones(1, 3) + 5;
-dataToUse.wordTable = wordTable(1:2, 1:6);
+dataToUse.imgs = rand(4, 10);
+dataToUse.zeroimgs = rand(4, 4);
+dataToUse.categories = randi(5, 1, 10);
+dataToUse.zerocategories = ones(1, 4) + 5;
+dataToUse.wordTable = wordTable(1:4, 1:6);
 debugOptions = struct;
 debugOptions.Method = 'lbfgs';
 debugOptions.display = 'off';
@@ -160,7 +169,7 @@ options.MaxIter = trainParams.maxIter;
 initMult = trainParams.autoencMult;
 for i = 1:trainParams.maxPass
     [theta, cost, ~, output] = minFunc( @(p) trainParams.costFunction(p, dataToUse, trainParams ), theta, options);
-    trainParams.autoencMult = trainParams.autoencMult + (1-initMult) / 10;
+    trainParams.autoencMult = trainParams.autoencMult + (1-initMult) / trainParams.maxPass;
 end
 
 gtime = toc(globalStart);
@@ -168,4 +177,6 @@ fprintf('Total time: %f s\n', gtime);
 
 %% Save learned parameters
 disp('Saving final learned parameters');
+disp('<END_EXPERIMENT>');
 save(sprintf('%s/params_final.mat', trainParams.outputPath), 'theta', 'trainParams');
+clear;
