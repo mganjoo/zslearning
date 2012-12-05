@@ -31,11 +31,7 @@ for i = 1:length(fields)
 end
 
 if not(isfield(trainParams, 'outputPath'))
-    if strcmp(func2str(trainParams.costFunction), 'mapOneShotCost') == 0
-        trainParams.outputPath = sprintf('map-iter_%d-pass_%d-ae_%d-aeiter_%d-reg_%.0e-1s_%.1f', trainParams.maxIter, trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda, trainParams.oneShotMult);
-    else
-        trainParams.outputPath = sprintf('map-iter_%d-pass_%d-ae_%d-aeiter_%d-reg_%.0e', trainParams.maxIter, trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda);
-    end
+    trainParams.outputPath = sprintf('map-%s-iter_%d-pass_%d-ae_%d-aeiter_%d-reg_%.0e-1s_%.1f', func2str(trainParams.costFunction), trainParams.maxIter, trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda, trainParams.oneShotMult);
 end
 
 fprintf('<BEGIN_EXPERIMENT %s>\n', trainParams.outputPath);
