@@ -7,14 +7,14 @@ fields = {{'wordDataset',         'acl'}; % type of embedding dataset to use ('t
           {'imageDataset',        'cifar10'};    % CIFAR dataset type
           {'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'zeroFilePrefix',      'zeroshot_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'maxIter',             20};     % maximum number of minFunc iterations on a batch
-          {'maxPass',             10};     % maximum number of passes through training data
+          {'maxIter',             200};     % maximum number of minFunc iterations on a batch
+          {'maxPass',             1};     % maximum number of passes through training data
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
           {'disableAutoencoder',  true};  % whether to disable autoencoder
           {'fixRandom',           false};  % whether to fix the random number generator
           {'lambda',              1E-3};  % regularization parameter
           {'oneShotMult',         5.0};   % multiplier for one-shot multiplier
-          {'costFunction',        @mapTrainingCost}; % training cost function
+          {'costFunction',        @mapOneShotCostNoAutoenc}; % training cost function
           {'autoencMultStart',    0.01};   % starting value for autoenc mult
           {'sparsityParam',       0.035}; % desired average activation of the hidden units.
           {'beta',                5};     % weight of sparsity penalty term
@@ -111,11 +111,12 @@ debugParams.sparsityParam = trainParams.sparsityParam;
 debugParams.autoencMult = 1E-2;
 debugParams.oneShotMult = 5.0;
 debugParams.doEvaluate = false;
+debugParams.costFunction = trainParams.costFunction;
 [ debugTheta, debugParams.decodeInfo ] = mapInitParameters(debugParams);
 if not(trainParams.disableAutoencoder)
     [~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, debugParams), debugTheta, debugOptions);
 end
-[~, ~, ~, ~] = minFunc( @(p) trainParams.costFunction(p, dataToUse, debugParams), debugTheta, debugOptions);
+[~, ~, ~, ~] = minFunc( @(p) debugParams.costFunction(p, dataToUse, debugParams), debugTheta, debugOptions);
 
 %% Load validation batch
 disp('Loading validation batch');

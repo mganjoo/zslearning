@@ -1,9 +1,14 @@
 function [ theta, decodeInfo ] = mapInitParameters(trainParams)
 
-W = cell(2, 1);
-b = cell(2, 1);
+if strcmp(func2str(trainParams.costFunction), 'mapOneShotNoAutoenc') == 0
+    layers = [trainParams.inputSize trainParams.outputSize];
+else
+    layers = [trainParams.inputSize trainParams.outputSize trainParams.inputSize];
+end
 
-layers = [trainParams.inputSize trainParams.outputSize trainParams.inputSize];
+W = cell(length(layers)-1, 1);
+b = cell(length(layers)-1, 1);
+
 r = sqrt(6) / sqrt(sum(layers));
 for i = 1:(length(layers)-1)
     W{i} = rand(layers(i+1), layers(i)) * 2*r-r;
