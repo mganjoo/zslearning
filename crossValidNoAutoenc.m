@@ -1,14 +1,14 @@
-trainParams.oneShotMult = 5;
+trainParams.numReplicate = 5;
 mapTrain;
 
-trainParams.oneShotMult = 10;
+trainParams.numReplicate = 10;
 mapTrain;
 
-trainParams.oneShotMult = 15;
+trainParams.numReplicate = 15;
 mapTrain;
 
-trainParams.oneShotMult = 2.5;
+trainParams.numReplicate = 100;
 mapTrain;
 
-trainParams.oneShotMult = 7.5;
+trainParams.numReplicate = 200;
 mapTrain;

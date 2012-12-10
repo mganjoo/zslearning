@@ -48,8 +48,8 @@ if costPerImage == 0
 end
 
 % Regularization
-reg = params.wReg * (sum(sum(W1_word.^2))) + params.iReg * (sum(sum(W1_image.^2))) ...
-    + (params.wReg + params.iReg) * sum(sum(W{2}.^2));
+reg = params.lambda * (sum(sum(W1_word.^2))) + params.lambda * (sum(sum(W1_image.^2))) ...
+    + (params.lambda + params.lambda) * sum(sum(W{2}.^2));
 
 % Total cost
 costTotal = 1/numImages * sum(costPerImage) + 0.5 * reg;
@@ -85,10 +85,17 @@ gradW1 = bsxfun(@times, W{2}', -sum_fpa2good*pgood' + [t1 t2]);
 gradb1 = W{2}' .* sum(-sum_fpa2good + sum_fpa2, 2);
 
 %% Update gradients
-gradW1 = 1/numImages*gradW1 + [ params.wReg*W1_word params.iReg*W1_image ];
-gradW2 = 1/numImages*gradW2 + (params.wReg+params.iReg)*W{2};
+gradW1 = 1/numImages*gradW1 + [ params.lambda*W1_word params.lambda*W1_image ];
+gradW2 = 1/numImages*gradW2 + (params.lambda+params.lambda)*W{2};
 gradb1 = 1/numImages*gradb1;
 
 gradTotal = [ gradW1(:); gradW2(:); gradb1(:) ];
+
+if params.doEvaluate == true
+    doPrint = true;
+    mapDoEvaluate(data.imgs, data.categories, data.categoryNames, data.categoryNames, data.wordTable, theta, params, doPrint);
+    mapDoEvaluate(data.validImgs, data.validCategories, data.categoryNames, data.categoryNames, data.wordTable, theta, params, doPrint);
+    mapDoEvaluate(data.testImgs, data.testCategories, data.testOriginalCategoryNames, data.testCategoryNames, data.testWordTable, theta, params, doPrint);
+end
 
 end

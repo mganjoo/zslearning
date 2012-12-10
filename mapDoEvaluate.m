@@ -6,7 +6,7 @@ numImages = size(images, 2);
 numCategories = size(testWordTable, 2);
 
 % Feedforward
-mappedImages = trainParams.f(bsxfun(@plus, W{1} * images, b{1}));
+mappedImages = bsxfun(@plus, 0.5 * W{1} * images, b{1});
 
 dist = slmetric_pw(testWordTable, mappedImages, 'eucdist');
 [ ~, guessedCategories ] = min(dist);
