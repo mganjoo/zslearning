@@ -8,9 +8,9 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'lambda',              1E-3};   % regularization parameter
           {'numReplicate',        15};     % one-shot replication
           {'dropoutFraction',     0.5};    % drop-out fraction
-          {'costFunction',        @mapOneShotCostDropout}; % training cost function
-          {'trainFunction',       @trainLBFGS}; % training function to use
-          {'maxIter',             50};     % maximum number of minFunc iterations on a batch
+          {'costFunction',        @sgdOneShotCostDropout}; % training cost function
+          {'trainFunction',       @trainSGD}; % training function to use
+          {'maxIter',             20};     % maximum number of minFunc iterations on a batch
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
@@ -163,6 +163,16 @@ if not(trainParams.disableAutoencoder)
     save(sprintf('%s/autoenc_params.mat', trainParams.outputPath), 'theta', 'trainParams');
 end
 
+oldNumReplicate = trainParams.numReplicate;
+trainParams.numReplicate = 0;
+oldDropoutFraction = trainParams.dropoutFraction; 
+trainParams.dropoutFraction = 1;
+theta = trainParams.trainFunction(trainParams, dataToUse, theta);
+disp('Saving training parameters');
+save(sprintf('%s/train_params_final.mat', trainParams.outputPath), 'theta', 'trainParams');
+trainParams.numReplicate = oldNumReplicate;
+trainParams.dropoutFraction = oldDropoutFraction;
+trainParams.maxIter = 5;
 theta = trainParams.trainFunction(trainParams, dataToUse, theta);
 
 gtime = toc(globalStart);
