@@ -1,6 +1,5 @@
 % Mini testing only
 
-trainParams.costFunction = @mapOneShotCostDropout;
 trainParams.wordDataset     = 'acl';
 trainParams.imageDataset    = 'cifar10';
 trainParams.batchFilePrefix = 'mini_batch';

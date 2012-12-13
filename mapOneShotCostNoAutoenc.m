@@ -12,12 +12,13 @@ numImages = size(data.imgs, 2);
 h = bsxfun(@plus, W{1} * data.imgs, b{1});
 w = data.wordTable(:, data.categories);
 
-cost = 0.5 / numImages * (sum(sum((h(:,1:end-1) - w(:,1:end-1)).^2)) + params.oneShotMult*sum((h(:,end) - w(:,end)).^2));
+reg = 0.5 * params.lambda * (sum(sum(W{1} .^ 2)) + sum(b{1} .^ 2));
+cost = 0.5 / numImages * (sum(sum((h(:,1:end-1) - w(:,1:end-1)).^2)) + params.oneShotMult*sum((h(:,end) - w(:,end)).^2)) + reg;
 
 % Backprop
 del = [h(:,1:end-1) - w(:,1:end-1), params.oneShotMult*(h(:,end) - w(:,end))] / numImages;
-Wgrad = del * data.imgs';
-bgrad = sum(del, 2);
+Wgrad = del * data.imgs' + params.lambda * W{1};
+bgrad = sum(del, 2) + params.lambda * b{1};
 
 grad = [ Wgrad(:); bgrad(:) ];
 

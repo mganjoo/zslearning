@@ -3,23 +3,30 @@ addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
 
 %% Model Parameters
-fields = {{'wordDataset',         'acl'}; % type of embedding dataset to use ('turian.200', 'acl')
-          {'imageDataset',        'cifar10'};    % CIFAR dataset type
-          {'batchFilePrefix',     'default_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'zeroFilePrefix',      'zeroshot_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'maxIter',             200};     % maximum number of minFunc iterations on a batch
-          {'maxPass',             1};     % maximum number of passes through training data
+fields = {{'wordDataset',         'acl'};            % type of embedding dataset to use ('turian.200', 'acl')
+          {'imageDataset',        'cifar10'};        % CIFAR dataset type
+          {'lambda',              1E-3};   % regularization parameter
+          {'numReplicate',        15};     % one-shot replication
+          {'dropoutFraction',     0.5};    % drop-out fraction
+          {'costFunction',        @mapOneShotCostDropout}; % training cost function
+          {'trainFunction',       @trainLBFGS}; % training function to use
+          {'maxIter',             50};     % maximum number of minFunc iterations on a batch
+          {'maxPass',             1};      % maximum number of passes through training data
+          {'disableAutoencoder',  true};   % whether to disable autoencoder
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
-          {'disableAutoencoder',  true};  % whether to disable autoencoder
+          
+          % options
+          {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
+          {'zeroFilePrefix',      'zeroshot_batch'}; % batch for zero shot images
           {'fixRandom',           false};  % whether to fix the random number generator
-          {'lambda',              1E-3};  % regularization parameter
-          {'oneShotMult',         1.0};   % multiplier for one-shot multiplier
-          {'numReplicate',        15};    % one-shot replication
-          {'costFunction',        @mapOneShotCostNoAutoenc}; % training cost function
-          {'autoencMultStart',    0.01};  % starting value for autoenc mult
-          {'sparsityParam',       0.035}; % desired average activation of the hidden units.
-          {'beta',                5};     % weight of sparsity penalty term
-          {'saveEvery',           5};     % number of passes after which we need to do intermediate saves
+          {'enableGradientCheck', false};  % whether to enable gradient check
+
+          % Old parameters, just keep for compatibility
+          {'saveEvery',           5};      % number of passes after which we need to do intermediate saves
+          {'oneShotMult',         1.0};    % multiplier for one-shot multiplier
+          {'autoencMultStart',    0.01};   % starting value for autoenc mult
+          {'sparsityParam',       0.035};  % desired average activation of the hidden units.
+          {'beta',                5};      % weight of sparsity penalty term
 };
 
 % Load existing model parameters, if they exist
@@ -32,7 +39,10 @@ for i = 1:length(fields)
 end
 
 if not(isfield(trainParams, 'outputPath'))
-    trainParams.outputPath = sprintf('map-%s-iter_%d-pass_%d-ae_%d-aeiter_%d-reg_%.0e-1s_%.1f_%d', func2str(trainParams.costFunction), trainParams.maxIter, trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda, trainParams.oneShotMult, trainParams.numReplicate);
+    trainParams.outputPath = sprintf('map-%s-%s-%s-iter_%d-pass_%d-noae_%d-aeiter_%d-reg_%.0e-1s_%d-dfrac_%.2f', ...
+        func2str(trainParams.costFunction), trainParams.imageDataset, trainParams.wordDataset, trainParams.maxIter, ...
+        trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda, trainParams.numReplicate, ...
+        trainParams.dropoutFraction);
 end
 
 fprintf('<BEGIN_EXPERIMENT %s>\n', trainParams.outputPath);
@@ -49,10 +59,6 @@ trainParams.f_prime = @tanh_prime; % derivative of f
 trainParams.doEvaluate = true;
 trainParams.testFilePrefix = 'zeroshot_test_batch';
 trainParams.autoencMult = trainParams.autoencMultStart;
-
-% minFunc options
-options.Method = 'lbfgs';
-options.display = 'on';
 
 % Additional options
 batchFilePath   = ['image_data/batches/' trainParams.imageDataset];
@@ -83,44 +89,32 @@ for i = 1:length(zeroCategoryNames)
 end
 clear t;
 
-%% First check the gradient of our minimizer
-dimgs = rand(4, 10);
-dcategories = randi(5, 1, 10);
-dwordTable = wordTable(1:4, 1:6);
-dataToUse = prepareData( dimgs, dcategories, dwordTable );
-dataToUse.zeroimgs = rand(4, 4);
-dataToUse.zerocategories = ones(1, 4) + 5;
-debugOptions = struct;
-debugOptions.Method = 'lbfgs';
-debugOptions.display = 'off';
-debugOptions.DerivativeCheck = 'on';
-debugOptions.maxIter = 1;
-debugParams = struct;
-debugParams.f = trainParams.f;
-debugParams.f_prime = trainParams.f_prime;
-debugParams.lambda = trainParams.lambda;
-debugParams.beta = trainParams.beta;
-debugParams.sparsityParam = trainParams.sparsityParam;
-debugParams.autoencMult = 1E-2;
-debugParams.oneShotMult = 5.0;
-debugParams.numReplicate = 3;
-debugParams.doEvaluate = false;
-debugParams.costFunction = trainParams.costFunction;
-if strcmp(func2str(trainParams.costFunction), 'trainingCost') == true
-    debugParams.inputSize = size(dataToUse.imgs, 1) + size(dataToUse.wordTable, 1);
-    debugParams.hiddenSize = 5;
-    [ debugTheta, debugParams.decodeInfo ] = initializeParameters(debugParams);
-else
+if trainParams.enableGradientCheck
+    %% First check the gradient of our minimizer
+    dimgs = rand(4, 10);
+    dcategories = randi(5, 1, 10);
+    dwordTable = wordTable(1:4, 1:6);
+    dataToUse = prepareData( dimgs, dcategories, dwordTable );
+    dataToUse.zeroimgs = rand(4, 4);
+    dataToUse.zerocategories = ones(1, 4) + 5;
+    debugOptions.Method = 'lbfgs';
+    debugOptions.display = 'off';
+    debugOptions.DerivativeCheck = 'on';
+    debugOptions.maxIter = 1;
+    debugParams = trainParams;
+    debugParams.autoencMult = 1E-2;
+    debugParams.numReplicate = 3;
+    debugParams.doEvaluate = false;
     debugParams.inputSize = size(dataToUse.imgs, 1);
     debugParams.outputSize = size(dataToUse.wordTable, 1);
     [ debugTheta, debugParams.decodeInfo ] = mapInitParameters(debugParams);
-end
+    if not(trainParams.disableAutoencoder)
+        [~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, debugParams), debugTheta, debugOptions);
+    end
+    [~, ~, ~, ~] = minFunc( @(p) debugParams.costFunction(p, dataToUse, debugParams), debugTheta, debugOptions);
+end 
 
-% if not(trainParams.disableAutoencoder)
-%     [~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, debugParams), debugTheta, debugOptions);
-% end
-% [~, ~, ~, ~] = minFunc( @(p) debugParams.costFunction(p, dataToUse, debugParams), debugTheta, debugOptions);
-
+% Prepare actual data
 dataToUse = prepareData( imgs, categories, wordTable );
 dataToUse.zeroimgs = zeroimgs;
 dataToUse.zerocategories = zerocategories;
@@ -153,15 +147,9 @@ dataToUse.testCategoryNames = testCategoryNames;
 
 %% Initialize actual weights
 disp('Initializing parameters');
-if strcmp(func2str(trainParams.costFunction), 'trainingCost') == true
-    trainParams.inputSize = size(imgs, 1) + size(wordTable, 1);
-    trainParams.hiddenSize = 100;
-    [ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);
-else
-    trainParams.inputSize = size(imgs, 1);
-    trainParams.outputSize = size(wordTable, 1);
-    [ theta, trainParams.decodeInfo ] = mapInitParameters(trainParams);
-end
+trainParams.inputSize = size(imgs, 1);
+trainParams.outputSize = size(wordTable, 1);
+[ theta, trainParams.decodeInfo ] = mapInitParameters(trainParams);
 
 if not(exist(trainParams.outputPath, 'dir'))
     mkdir(trainParams.outputPath);
@@ -171,16 +159,11 @@ globalStart = tic;
 
 if not(trainParams.disableAutoencoder)
     options.MaxIter = trainParams.maxAutoencIter;
-    [theta, cost, ~, output] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, trainParams ), theta, options);
+    [theta, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, trainParams ), theta, options);
     save(sprintf('%s/autoenc_params.mat', trainParams.outputPath), 'theta', 'trainParams');
 end
 
-options.MaxIter = trainParams.maxIter;
-initMult = trainParams.autoencMult;
-for i = 1:trainParams.maxPass
-    [theta, cost, ~, output] = minFunc( @(p) trainParams.costFunction(p, dataToUse, trainParams ), theta, options);
-    trainParams.autoencMult = trainParams.autoencMult + (1-initMult) / trainParams.maxPass;
-end
+theta = trainParams.trainFunction(trainParams, dataToUse, theta);
 
 gtime = toc(globalStart);
 fprintf('Total time: %f s\n', gtime);
