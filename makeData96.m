@@ -14,6 +14,6 @@ disp('Creating zero-shot training set');
 makeFeatureBatches(train.trainX, train.trainY, 1, 'cifar96', { 'boy' }, 'zeroshot_batch', true);
 
 disp('Creating zero-shot validation set');
-makeTestBatch(test.testX, test.testY, { 'boy', 'lion' }, 'zeroshot_test_batch', true);
+makeTestBatch(test.testX, test.testY, 'cifar96', { 'boy', 'lion' }, 'zeroshot_test_batch', true);
 
 clear train test;

@@ -70,10 +70,10 @@ end
 
 batch = batch(randperm(length(batch)));
 disp('Output test batch');
-t = matfile(sprintf([outputDir '/%s.mat'], prefix));
-t.X = testX(:, batch);
+X = testX(:, batch);
 testYc = arrayfun(@(x) find(categorySet == x), testY(:, batch));
-t.Y = testYc;
-t.names = categoryNames(categorySet);
+Y = testYc;
+names = categoryNames(categorySet);
+save(sprintf([outputDir '/%s.mat'], prefix), 'X', 'Y', 'names', '-v7.3');
 
 end
