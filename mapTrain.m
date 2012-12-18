@@ -130,9 +130,9 @@ dataset = trainParams.imageDataset;
 [dataToUse.testImgs, dataToUse.testCategories, dataToUse.testOriginalCategoryNames] = loadBatch(trainParams.testFilePrefix, trainParams.imageDataset);
 
 if strcmp(dataset, 'cifar10') == true
-    testCategoryNames = loadCategoryNames({ 'truck' }, dataset);
+    testCategoryNames = loadCategoryNames({}, dataset);
 elseif strcmp(dataset, 'cifar96') == true
-    testCategoryNames = loadCategoryNames({ 'lion', 'orange', 'camel' }, dataset);
+    testCategoryNames = loadCategoryNames({ 'orange', 'camel' }, dataset);
 else
     error('Not a valid dataset');
 end
