@@ -1,23 +1,18 @@
-% Default, with acl
-mapTrain;
+trainParams.imageDataset = 'cifar96';
 
-trainParams.numReplicate = 20;
-mapTrain;
+wordDatasets = { 'acl', 'turian.200' };
+dropoutFracs = [0.5 0.7];
+numReplicates = [15 20 25];
 
-trainParams.numReplicate = 25;
-mapTrain;
+for k = 1:length(wordDatasets)
+    for i = 1:length(dropoutFracs)
+        for j = 1:length(numReplicates)
+            trainParams.wordDataset = wordDatasets(k);
+            trainParams.dropoutFraction = dropoutFracs(i);
+            trainParams.numReplicate = numReplicates(j);
+            mapTrain;
+        end
+    end
+end
 
-trainParams.dropoutFraction = 0.7;
-mapTrain;
-
-trainParams.numReplicate = 20;
-trainParams.dropoutFraction = 0.7;
-mapTrain;
-
-trainParams.numReplicate = 25;
-trainParams.dropoutFraction = 0.7;
-mapTrain;
-
-% Repeat everything with turian.200
-trainParams.wordDataset = 'turian.200';
-mapTrain;
+clear;
