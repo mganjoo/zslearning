@@ -2,6 +2,8 @@ function [ theta, decodeInfo ] = mapInitParameters(trainParams)
 
 if strcmp(func2str(trainParams.costFunction), 'mapOneShotNoAutoenc') == 0
     layers = [trainParams.inputSize trainParams.outputSize];
+elseif strcmp(func2str(trainParams.costFunction), 'mapOneShotTwoLayer') == 0 
+    layers = [trainParams.inputSize trainParams.hiddenSize trainParams.inputSize];
 else
     layers = [trainParams.inputSize trainParams.outputSize trainParams.inputSize];
 end

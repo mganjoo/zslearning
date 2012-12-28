@@ -3,8 +3,8 @@ function [cost, theta] = sgdOneShotCostDropout( theta, alpha, data, params )
 [ W, b ] = stack2param(theta, params.decodeInfo);
 
 numOrigImages = size(data.imgs, 2);
-data.imgs = [data.imgs repmat(data.zeroimgs(:, 1), 1, params.numReplicate)];
-data.categories = [data.categories repmat(data.zerocategories(:, 1), 1, params.numReplicate)];
+data.imgs = [data.imgs repmat(data.zeroimgs, 1, params.numReplicate)];
+data.categories = [data.categories repmat(data.zerocategories, 1, params.numReplicate)];
 
 numImages = size(data.imgs, 2);
 
@@ -38,6 +38,8 @@ if params.doEvaluate == true
     mapDoEvaluate(data.imgs(:,1:numOrigImages), data.categories(:,1:numOrigImages), data.categoryNames, data.categoryNames, data.wordTable, theta, params, doPrint);
     mapDoEvaluate(data.validImgs, data.validCategories, data.categoryNames, data.categoryNames, data.wordTable, theta, params, doPrint);
     mapDoEvaluate(data.testImgs, data.testCategories, data.testOriginalCategoryNames, data.testCategoryNames, data.testWordTable, theta, params, doPrint);
+    [~, results ] = mapDoEvaluate(data.testImgs, data.testCategories, data.testOriginalCategoryNames, data.randCategoryNames, data.randWordTable, theta, params, false);
+    fprintf('Accuracy when using 50 random categories: %.2f\n', results.accuracy);
 end
 
 end

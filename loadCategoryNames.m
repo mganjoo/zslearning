@@ -1,6 +1,6 @@
-function [ categoryNames ] = loadCategoryNames( excludedCategories, dataset )
+function [ categoryNames ] = loadCategoryNames( dataset, excludedCategories )
 
-if nargin < 1
+if nargin < 2
     excludedCategories = {};
 end
 

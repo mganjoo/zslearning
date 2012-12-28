@@ -1,6 +1,6 @@
 function [ data ] = prepareData( imgs, categories, wordTable )
 
-numImages     = size(imgs, 2);
+numImages = size(imgs, 2);
 
 data.imgs = imgs;
 data.categories = categories;
