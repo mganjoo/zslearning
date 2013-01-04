@@ -18,9 +18,7 @@ parser.add_argument('--wordset', help='the word vector dataset to use')
 parser.add_argument('--trainset', help='the prefix of the image batches to use')
 parser.add_argument('--maxPass', help='the number of passes through the training data', type=int)
 parser.add_argument('--maxIter', help='the number of iterations over a training batch', type=int)
-parser.add_argument('--saveEvery', help='number of passes after which we need to save', type=int)
-parser.add_argument('--wordReg', help='the regularization param for words', type=float)
-parser.add_argument('--imageReg', help='the regularization param for images', type=float)
+parser.add_argument('--lambda', help='the regularization param', type=float)
 parser.add_argument('-m', '--machine', nargs='*', help='machines to use')
 parser.add_argument('--mem', help='memory to allocate')
 parser.add_argument('-i', '--jobId', help='the name of the job, also used as output folder')
@@ -32,17 +30,14 @@ jobId = args.jobId or ('zsl-' + datetime.datetime.today().strftime("%Y-%m-%d_%H%
 outputPath = os.path.join(PROJECT_PATH, jobId)
 
 matlabArguments = {
-    'pythonExe':   PYTHON_EXE,
-    'trainScript': TRAIN_SCRIPT,
-    'wordset':     args.wordset or 'turian.200',
-    'trainset':    args.trainset or 'mini_batch_96',
-    'maxPass':     args.maxPass or 3,
-    'maxIter':     args.maxIter or 2,
-    'saveEvery':   args.saveEvery or 10,
-    'wordReg':     args.wordReg or 1E-3,
-    'imageReg':    args.imageReg or 1E-6,
-    'projectPath': PROJECT_PATH,
-    'outputPath':  outputPath,
+    'pythonExe':    PYTHON_EXE,
+    'trainScript':  TRAIN_SCRIPT,
+    'wordset':      args.wordset or 'acl',
+    'trainset':     args.trainset or 'cifar10',
+    'maxPass':      args.maxPass or 3,
+    'maxIter':      args.maxIter or 2,
+    'lambda':       args.reg or 1E-3,
+    'outputPath':   outputPath,
 }
 
 qsubOptionalArguments = ''

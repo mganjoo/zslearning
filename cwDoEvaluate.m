@@ -1,4 +1,4 @@
-function [ guessedCategoriesDebug, results ] = doEvaluate( images, categories, originalCategoryNames, testCategoryNames, testWordTable, theta, trainParams, doPrint )
+function [ guessedCategoriesDebug, results ] = cwDoEvaluate( images, categories, originalCategoryNames, testCategoryNames, testWordTable, theta, trainParams, doPrint )
 
 [Wt, bt] = stack2param(theta, trainParams.decodeInfo);
 numImages = size(images, 2);

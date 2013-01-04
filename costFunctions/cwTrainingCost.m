@@ -1,4 +1,4 @@
-function [costTotal, gradTotal] = trainingCost( theta, data, params )
+function [costTotal, gradTotal] = cwTrainingCost( theta, data, params )
 
 % Extract our weight and bias matrices from the stack.
 [W, b] = stack2param(theta, params.decodeInfo);
@@ -28,14 +28,15 @@ a2 = params.f(z2words(:,t1(:)) + z2image(:,t2(:)));
 output  = W{2} * a2;
 
 % Extract columns corresponding to "good" combinations
-pgood = [ data.wgood; data.imgs ];
-a2good = a2(:, data.goodIndices);
-outputGood = output(data.goodIndices);
+pgood = [ data.wordTable(:, data.categories); data.imgs ];
+goodIndices = (data.categories-1) * numImages + (1:numImages);
+a2good = a2(:, goodIndices);
+outputGood = output(goodIndices);
 
 % Build 2-D matrix of hinge losses (numImages * numCategories)
 outputGrouped = reshape(output, numImages, [])';
 hingeLossesGrouped = max(0, 1 + bsxfun(@plus, -outputGood, outputGrouped))';
-hingeLossesGrouped(data.goodIndices) = 0;
+hingeLossesGrouped(goodIndices) = 0;
 
 % Cost per image
 costPerImage = sum(hingeLossesGrouped, 2);
@@ -58,7 +59,7 @@ costTotal = 1/numImages * sum(costPerImage) + 0.5 * reg;
 
 % Calculate derivative components
 fpa2 = params.f_prime(a2);
-fpa2good = fpa2(:, data.goodIndices);
+fpa2good = fpa2(:, goodIndices);
 
 % Define logical indexes for components of calculations we want to keep.
 % We discard any components where the calculated hinge loss was zero.
@@ -88,14 +89,15 @@ gradb1 = W{2}' .* sum(-sum_fpa2good + sum_fpa2, 2);
 gradW1 = 1/numImages*gradW1 + [ params.lambda*W1_word params.lambda*W1_image ];
 gradW2 = 1/numImages*gradW2 + (params.lambda+params.lambda)*W{2};
 gradb1 = 1/numImages*gradb1;
+gradb2 = 0;
 
-gradTotal = [ gradW1(:); gradW2(:); gradb1(:) ];
+gradTotal = [ gradW1(:); gradW2(:); gradb1(:); gradb2(:) ];
 
 if params.doEvaluate == true
     doPrint = true;
-    mapDoEvaluate(data.imgs, data.categories, data.categoryNames, data.categoryNames, data.wordTable, theta, params, doPrint);
-    mapDoEvaluate(data.validImgs, data.validCategories, data.categoryNames, data.categoryNames, data.wordTable, theta, params, doPrint);
-    mapDoEvaluate(data.testImgs, data.testCategories, data.testOriginalCategoryNames, data.testCategoryNames, data.testWordTable, theta, params, doPrint);
+    cwDoEvaluate(data.imgs, data.categories, data.categoryNames, data.categoryNames, data.wordTable, theta, params, doPrint);
+    cwDoEvaluate(data.validImgs, data.validCategories, data.categoryNames, data.categoryNames, data.wordTable, theta, params, doPrint);
+    cwDoEvaluate(data.testImgs, data.testCategories, data.testOriginalCategoryNames, data.testCategoryNames, data.testWordTable, theta, params, doPrint);
 end
 
 end

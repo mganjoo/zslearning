@@ -1,11 +1,11 @@
 function [ theta, decodeInfo ] = mapInitParameters(trainParams)
 
-if strcmp(func2str(trainParams.costFunction), 'mapOneShotNoAutoenc') == 0
-    layers = [trainParams.inputSize trainParams.outputSize];
-elseif strcmp(func2str(trainParams.costFunction), 'mapOneShotTwoLayer') == 0 
+if strcmp(func2str(trainParams.costFunction), 'mapOneShotTwoLayer') 
     layers = [trainParams.inputSize trainParams.hiddenSize trainParams.inputSize];
+elseif strcmp(func2str(trainParams.costFunction), 'cwTrainingCost')
+    layers = [trainParams.embeddingSize + trainParams.imageColumnSize, trainParams.hiddenSize, 1];
 else
-    layers = [trainParams.inputSize trainParams.outputSize trainParams.inputSize];
+    layers = [trainParams.inputSize trainParams.outputSize];
 end
 
 W = cell(length(layers)-1, 1);

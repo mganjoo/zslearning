@@ -1,6 +1,7 @@
 addpath toolbox/;
 addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
+addpath costFunctions/;
 
 %% Model Parameters
 fields = {{'wordDataset',         'acl'};            % type of embedding dataset to use ('turian.200', 'acl')
@@ -8,8 +9,9 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'lambda',              1E-3};   % regularization parameter
           {'numReplicate',        15};     % one-shot replication
           {'dropoutFraction',     0.5};    % drop-out fraction
-          {'costFunction',        @sgdOneShotCostDropout}; % training cost function
-          {'trainFunction',       @trainSGD}; % training function to use
+          {'costFunction',        @cwTrainingCost}; % training cost function
+          {'trainFunction',       @trainLBFGS}; % training function to use
+          {'hiddenSize',          100};
           {'maxIter',             20};     % maximum number of minFunc iterations on a batch
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder
@@ -19,7 +21,7 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'zeroFilePrefix',      'zeroshot_batch'}; % batch for zero shot images
           {'fixRandom',           false};  % whether to fix the random number generator
-          {'enableGradientCheck', false};  % whether to enable gradient check
+          {'enableGradientCheck', true};  % whether to enable gradient check
           {'preTrain',            true};   % whether to train on non-zero-shot first
           {'reloadData',          true};   % whether to reload data when this script is called (disable for batch jobs)
           
@@ -75,6 +77,7 @@ if trainParams.reloadData
     for i = 1:numBatches
         [batches{i}.imgs, batches{i}.categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, i);
     end
+    trainParams.imageColumnSize = size(batches{1}.imgs, 1);
 
     %% Load one-shot training images
     [zeroimgs, zerocategories, zeroCategoryNames] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
@@ -165,8 +168,10 @@ if trainParams.enableGradientCheck
     debugParams.autoencMult = 1E-2;
     debugParams.numReplicate = 3;
     debugParams.doEvaluate = false;
-    debugParams.inputSize = size(dataToUse.imgs, 1);
-    debugParams.outputSize = size(dataToUse.wordTable, 1);
+    debugParams.inputSize = size(ddataToUse.imgs, 1);
+    debugParams.outputSize = size(ddataToUse.wordTable, 1);
+    debugParams.embeddingSize = size(dwordTable, 1);
+    debugParams.imageColumnSize = size(dimgs, 1);
     [ debugTheta, debugParams.decodeInfo ] = mapInitParameters(debugParams);
     if not(trainParams.disableAutoencoder)
         [~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, ddataToUse, debugParams), debugTheta, debugOptions);
