@@ -43,13 +43,15 @@ for i = 1:length(fields)
 end
 
 if not(isfield(trainParams, 'outputPath'))
-    trainParams.outputPath = sprintf('map-%s-%s-%s-iter_%d-pass_%d-noae_%d-aeiter_%d-reg_%.0e-1s_%d-dfrac_%.2f', ...
+    outputPath = sprintf('map-%s-%s-%s-iter_%d-pass_%d-noae_%d-aeiter_%d-reg_%.0e-1s_%d-dfrac_%.2f-%s', ...
         func2str(trainParams.costFunction), trainParams.imageDataset, trainParams.wordDataset, trainParams.maxIter, ...
         trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda, trainParams.numReplicate, ...
-        trainParams.dropoutFraction);
+        trainParams.dropoutFraction, datestr(now, 30));
+else
+    outputPath = trainParams.outputPath;
 end
 
-fprintf('<BEGIN_EXPERIMENT %s>\n', trainParams.outputPath);
+fprintf('<BEGIN_EXPERIMENT %s>\n', outputPath);
 disp('Parameters:');
 disp(trainParams);
 
@@ -186,8 +188,8 @@ trainParams.outputSize = size(wordTable, 1);
 [ theta, trainParams.decodeInfo ] = mapInitParameters(trainParams);
 dataToUse.categoryNames = categoryNames;
 
-if not(exist(trainParams.outputPath, 'dir'))
-    mkdir(trainParams.outputPath);
+if not(exist(outputPath, 'dir'))
+    mkdir(outputPath);
 end
 
 globalStart = tic;
@@ -200,7 +202,7 @@ for j = 1:trainParams.maxPass
         if not(trainParams.disableAutoencoder)
             options.MaxIter = trainParams.maxAutoencIter;
             [theta, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, trainParams ), theta, options);
-            save(sprintf('%s/autoenc_params.mat', trainParams.outputPath), 'theta', 'trainParams');
+            save(sprintf('%s/autoenc_params.mat', outputPath), 'theta', 'trainParams');
         end
 
         if trainParams.preTrain
@@ -224,6 +226,6 @@ fprintf('Total time: %f s\n', gtime);
 
 %% Save learned parameters
 disp('Saving final learned parameters');
-save(sprintf('%s/params_final.mat', trainParams.outputPath), 'theta', 'trainParams');
+save(sprintf('%s/params_final.mat', outputPath), 'theta', 'trainParams');
 disp('<END_EXPERIMENT>');
 
