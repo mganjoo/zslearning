@@ -10,7 +10,7 @@ for k = 1:length(wordDatasets)
             trainParams.wordDataset = wordDatasets{k};
             trainParams.dropoutFraction = dropoutFracs(i);
             trainParams.numReplicate = numReplicates(j);
-            mapTrain;
+            train;
         end
     end
 end

@@ -1,24 +1,24 @@
-function [theta, decodeInfo] = initializeParameters(trainParams)
+function [ theta, decodeInfo ] = initializeParameters(trainParams)
 
-% bottom layer
-if isfield(trainParams, 'inputSize') == true
-    % allow manual override
-    inputSize = trainParams.inputSize;
+if strcmp(func2str(trainParams.costFunction), 'mapOneShotTwoLayer') 
+    layers = [trainParams.inputSize trainParams.hiddenSize trainParams.inputSize];
+elseif strcmp(func2str(trainParams.costFunction), 'cwTrainingCost')
+    layers = [trainParams.embeddingSize + trainParams.imageColumnSize, trainParams.hiddenSize, 1];
 else
-    inputSize = trainParams.embeddingSize + trainParams.imageColumnSize;
+    layers = [trainParams.inputSize trainParams.outputSize];
 end
 
-% deep layers
-W = cell(2, 1);
-b = cell(1, 1); % no bias at last layer
+W = cell(length(layers)-1, 1);
+b = cell(length(layers)-1, 1);
 
-layers = [inputSize trainParams.hiddenSize 1];
 r = sqrt(6) / sqrt(sum(layers));
 for i = 1:(length(layers)-1)
     W{i} = rand(layers(i+1), layers(i)) * 2*r-r;
-    if i ~= length(layers)-1
-        b{i} = zeros(layers(i+1), 1);
-    end
+    b{i} = zeros(layers(i+1), 1);
 end
 
+% Flatten
 [theta, decodeInfo] = param2stack(W,b);
+
+end
+

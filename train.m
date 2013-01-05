@@ -1,18 +1,36 @@
 addpath toolbox/;
 addpath toolbox/minFunc/;
+addpath toolbox/pwmetric/;
+addpath costFunctions/;
 
 %% Model Parameters
-fields = {{'wordDataset',         'turian.200'}; % type of embedding dataset to use ('turian.200')
-          {'imageDataset',        'cifar96'};    % CIFAR dataset type
-          {'batchFilePrefix',     'mini_batch'}; % use this to choose different batch sets (common values: default_batch or mini_batch)
-          {'maxPass',             60};     % maximum number of passes through training data
-          {'maxIter',             5};      % maximum number of minFunc iterations on a batch
-          {'hiddenSize',          100};    % number of units in hidden layer
-          {'wReg',                1E-3};   % regularization parameter for words (weight decay)
-          {'iReg',                1E-6};   % regularization parameter for images (weight decay)
+fields = {{'wordDataset',         'acl'};            % type of embedding dataset to use ('turian.200', 'acl')
+          {'imageDataset',        'cifar10'};        % CIFAR dataset type
+          {'lambda',              1E-3};   % regularization parameter
+          {'numReplicate',        15};     % one-shot replication
+          {'dropoutFraction',     0.5};    % drop-out fraction
+          {'costFunction',        @cwTrainingCost}; % training cost function
+          {'trainFunction',       @trainLBFGS}; % training function to use
+          {'hiddenSize',          100};
+          {'maxIter',             40};     % maximum number of minFunc iterations on a batch
+          {'maxPass',             1};      % maximum number of passes through training data
+          {'disableAutoencoder',  true};   % whether to disable autoencoder
+          {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
+          
+          % options
+          {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
+          {'zeroFilePrefix',      'zeroshot_batch'}; % batch for zero shot images
           {'fixRandom',           false};  % whether to fix the random number generator
-          {'outputPath',          'savedParams'}; % the path to output files to
-          {'saveEvery',           10};     % number of passes after which we need to do intermediate saves
+          {'enableGradientCheck', true};  % whether to enable gradient check
+          {'preTrain',            true};   % whether to train on non-zero-shot first
+          {'reloadData',          true};   % whether to reload data when this script is called (disable for batch jobs)
+          
+          % Old parameters, just keep for compatibility
+          {'saveEvery',           5};      % number of passes after which we need to do intermediate saves
+          {'oneShotMult',         1.0};    % multiplier for one-shot multiplier
+          {'autoencMultStart',    0.01};   % starting value for autoenc mult
+          {'sparsityParam',       0.035};  % desired average activation of the hidden units.
+          {'beta',                5};      % weight of sparsity penalty term
 };
 
 % Load existing model parameters, if they exist
@@ -24,6 +42,16 @@ for i = 1:length(fields)
     end
 end
 
+if not(isfield(trainParams, 'outputPath'))
+    outputPath = sprintf('map-%s-%s-%s-iter_%d-pass_%d-noae_%d-aeiter_%d-reg_%.0e-1s_%d-dfrac_%.2f-%s', ...
+        func2str(trainParams.costFunction), trainParams.imageDataset, trainParams.wordDataset, trainParams.maxIter, ...
+        trainParams.maxPass, trainParams.disableAutoencoder, trainParams.maxAutoencIter, trainParams.lambda, trainParams.numReplicate, ...
+        trainParams.dropoutFraction, datestr(now, 30));
+else
+    outputPath = trainParams.outputPath;
+end
+
+fprintf('<BEGIN_EXPERIMENT %s>\n', outputPath);
 disp('Parameters:');
 disp(trainParams);
 
@@ -34,129 +62,172 @@ end
 
 trainParams.f = @tanh;             % function to use in the neural network activations
 trainParams.f_prime = @tanh_prime; % derivative of f
+trainParams.doEvaluate = true;
+trainParams.testFilePrefix = 'zeroshot_test_batch';
+trainParams.autoencMult = trainParams.autoencMultStart;
 
-% minFunc options
-options.Method = 'lbfgs';
-options.display = 'on';
-options.MaxIter = trainParams.maxIter;
+if trainParams.reloadData
+    %% Load batches of training images
+    batchFilePath   = ['image_data/batches/' trainParams.imageDataset];
+    files = dir([batchFilePath '/' trainParams.batchFilePrefix '*.mat']);
+    numBatches = length(files) - 1;
+    assert(numBatches >= 1);
+    clear files;
 
-% Additional options
-batchFilePath   = ['image_data/batches/' trainParams.imageDataset];
-files = dir([batchFilePath '/' trainParams.batchFilePrefix '*.mat']);
-numBatches = length(files) - 1;
-assert(numBatches >= 1, 'Must have at least two batch files (one for training, one for validation)');
-clear files;
+    disp('Loading batches of training images and initializing parameters');
+    batches = cell(1, numBatches);
+    for i = 1:numBatches
+        [batches{i}.imgs, batches{i}.categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, i);
+    end
+    trainParams.imageColumnSize = size(batches{1}.imgs, 1);
 
-%% Load first batch of training images
-disp('Loading first batch of training images and initializing parameters');
-[imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, 1);
-numCategories = length(categoryNames);
-trainParams.imageColumnSize = size(imgs, 1); % the length of the column representation of a raw image
+    %% Load one-shot training images
+    [zeroimgs, zerocategories, zeroCategoryNames] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
+    dataToUse.zeroimgs = zeroimgs(:, 1);
+    dataToUse.zerocategories = zerocategories(:, 1);
 
-%% Load word representations
-disp('Loading word representations');
-w = load(['word_data/' trainParams.wordDataset '/wordTable.mat']);
-trainParams.embeddingSize = size(w.wordTable, 1);
-wordTable = zeros(trainParams.embeddingSize, length(categoryNames));
-for categoryIndex = 1:length(categoryNames)
-    icategoryWord = ismember(w.label_names, categoryNames(categoryIndex)) == true;
-    wordTable(:, categoryIndex) = w.wordTable(:, icategoryWord);
+    %% Load word representations
+    disp('Loading word representations');
+    t = load(['word_data/' trainParams.wordDataset '/' trainParams.imageDataset '/wordTable.mat']);
+    wordTable = zeros(size(t.wordTable, 1), length(categoryNames) + length(zeroCategoryNames));
+    for i = 1:length(categoryNames)
+        j = ismember(t.label_names, categoryNames{i}) == true;
+        wordTable(:, i) = t.wordTable(:, j);
+    end
+    for i = 1:length(zeroCategoryNames)
+        j = ismember(t.label_names, zeroCategoryNames{i}) == true;
+        wordTable(:, i + length(categoryNames)) = t.wordTable(:, j);
+        zerocategories = zerocategories + length(categoryNames);
+    end
+    clear t;
+    
+    %% Load validation batch
+    disp('Loading validation batch');
+    [dataToUse.validImgs, dataToUse.validCategories, ~] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, numBatches+1);
+
+    %% Load test images
+    disp('Loading test images');
+    [dataToUse.testImgs, dataToUse.testCategories, dataToUse.testOriginalCategoryNames] = loadBatch(trainParams.testFilePrefix, trainParams.imageDataset);
+
+    % Change the names of the categories to be included in the test set
+    dataset = trainParams.imageDataset;
+    if strcmp(dataset, 'cifar10') == true
+        testCategoryNames = loadCategoryNames(dataset);
+    elseif strcmp(dataset, 'cifar96') == true
+        testCategoryNames = loadCategoryNames(dataset, { 'orange', 'camel' });
+    elseif strcmp(dataset, 'cifar106') == true
+        testCategoryNames = loadCategoryNames(dataset, { 'truck', 'lion', 'orange', 'camel' });
+    else
+        error('Not a valid dataset');
+    end
+    w = load(['word_data/' trainParams.wordDataset '/' dataset '/wordTable.mat']);
+    trainParams.embeddingSize = size(w.wordTable, 1);
+    dataToUse.testWordTable = zeros(trainParams.embeddingSize, length(testCategoryNames));
+    for categoryIndex = 1:length(testCategoryNames)
+        icategoryWord = ismember(w.label_names, testCategoryNames(categoryIndex)) == true;
+        dataToUse.testWordTable(:, categoryIndex) = w.wordTable(:, icategoryWord);
+    end
+    dataToUse.testCategoryNames = testCategoryNames;
+    
+    % Load 50 random words from the vocabulary for an alternative
+    % evaluation method
+    disp('Loading random words for evaluation');
+    ee = load(['word_data/' trainParams.wordDataset '/embeddings.mat']);
+    vv = load(['word_data/' trainParams.wordDataset '/vocab.mat']);
+    % Pick 50 random nouns including the test category
+    randIndices = randi(length(vv.vocab), 1, 49);
+    if strcmp(dataset, 'cifar10') == true
+        extraNames = { 'cat', 'truck' };
+    elseif strcmp(dataset, 'cifar96') == true
+        extraNames = { 'lion', 'boy' };
+    elseif strcmp(dataset, 'cifar106') == true
+        extraNames = { 'cat', 'boy' };
+    else
+        error('Not a valid dataset');
+    end
+    dataToUse.randCategoryNames = [ extraNames vv.vocab(:, randIndices) ];
+    dataToUse.randWordTable = [ zeros(trainParams.embeddingSize, length(extraNames)) ee.embeddings(:, randIndices) ];
+    for categoryIndex = 1:length(extraNames)
+        icategoryWord = ismember(vv.vocab, testCategoryNames(categoryIndex)) == true;
+        dataToUse.randWordTable(:, categoryIndex) = ee.embeddings(:, icategoryWord);
+    end
+    clear ee vv;
 end
-clear w;
 
 %% First check the gradient of our minimizer
-debugImgs = rand(2, 5);
-debugCategories = randi(numCategories, 1, 5);
-debugWordTable = wordTable(1:2, 1:numCategories);
-dataToUse = prepareData(debugImgs, debugCategories, debugWordTable);
-debugOptions = struct;
-debugOptions.Method = 'lbfgs';
-debugOptions.display = 'off';
-debugOptions.DerivativeCheck = 'on';
-debugOptions.maxIter = 1;
-debugParams = struct;
-debugParams.inputSize = 4;
-debugParams.hiddenSize = 5;
-debugParams.f = trainParams.f;
-debugParams.f_prime = trainParams.f_prime;
-debugParams.wReg = 1E-3;
-debugParams.iReg = 1E-6;
-[debugTheta, debugParams.decodeInfo] = initializeParameters(debugParams);
-[~, ~, ~, ~] = minFunc( @(p) trainingCost(p, dataToUse, debugParams), debugTheta, debugOptions);
-
-%% Load validation batch
-disp('Loading validation batch');
-[validImgs, validCategories, validCategoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, numBatches+1);
-
-%% Initialize actual weights
-disp('Initializing parameters');
-[theta, trainParams.decodeInfo] = initializeParameters(trainParams);
-
-if not(exist(trainParams.outputPath, 'dir'))
-    mkdir(trainParams.outputPath);
-end
-
-%% Begin batches of training
-display(['Number of batches: ' num2str(numBatches)]);
-statistics.costAfterBatch = zeros(1, numBatches * trainParams.maxPass);
-if trainParams.maxPass >= trainParams.saveEvery
-    numSaves = floor(trainParams.maxPass / trainParams.saveEvery);
-    statistics.accuracies = zeros(1, numSaves);
-    statistics.avgPrecisions = zeros(1, numSaves);
-    statistics.avgRecalls = zeros(1, numSaves);
-    statistics.testAccuracies = zeros(1, numSaves);
-    statistics.testAvgPrecisions = zeros(1, numSaves);
-    statistics.testAvgRecalls = zeros(1, numSaves);
-end
-for passj = 1:trainParams.maxPass
-    for batchj = 1:numBatches
-        dataToUse = prepareData(imgs, categories, wordTable);
-        
-        fprintf('----------------------------------------\n');
-        fprintf('Pass %d, batch %d\n', passj, batchj);
-        % optimize and gather statistics
-        
-        [theta, cost, ~, output] = minFunc( @(p) trainingCost(p, dataToUse, trainParams), theta, options);
-        statistics.costAfterBatch(1, (passj-1) * numBatches + batchj) = cost;
-                        
-        if batchj < numBatches
-            nextBatch = batchj + 1;
-        else
-            nextBatch = 1;
-        end
-
-        if mod(passj, trainParams.saveEvery) == 0
-            % test on current training batch
-            doEvaluate(dataToUse.imgs, dataToUse.categories, categoryNames, categoryNames, wordTable, theta, trainParams);
-        end
-
-        [imgs, categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, nextBatch);
+if trainParams.enableGradientCheck
+    dimgs = rand(4, 10);
+    dcategories = randi(5, 1, 10);
+    dwordTable = wordTable(1:4, 1:6);
+    ddataToUse = prepareData( dimgs, dcategories, dwordTable );
+    ddataToUse.zeroimgs = rand(4, 4);
+    ddataToUse.zerocategories = ones(1, 4) + 5;
+    debugOptions.Method = 'lbfgs';
+    debugOptions.display = 'off';
+    debugOptions.DerivativeCheck = 'on';
+    debugOptions.maxIter = 1;
+    debugParams = trainParams;
+    debugParams.autoencMult = 1E-2;
+    debugParams.numReplicate = 3;
+    debugParams.doEvaluate = false;
+    debugParams.inputSize = size(ddataToUse.imgs, 1);
+    debugParams.outputSize = size(ddataToUse.wordTable, 1);
+    debugParams.embeddingSize = size(dwordTable, 1);
+    debugParams.imageColumnSize = size(dimgs, 1);
+    [ debugTheta, debugParams.decodeInfo ] = initializeParameters(debugParams);
+    if not(trainParams.disableAutoencoder)
+        [~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, ddataToUse, debugParams), debugTheta, debugOptions);
     end
-    
-    % intermediate saves
-    if mod(passj, trainParams.saveEvery) == 0
-        % test on validation batch
-        fprintf('----------------------------------------\n');
-        fprintf('Validation after pass %d\n', passj);
-        [ ~, results ] = doEvaluate(validImgs, validCategories, categoryNames, categoryNames, wordTable, theta, trainParams);
-        statistics.accuracies(passj / trainParams.saveEvery) = results.accuracy;
-        statistics.avgPrecisions(passj / trainParams.saveEvery) = results.avgPrecision;
-        statistics.avgRecalls(passj / trainParams.saveEvery) = results.avgRecall;
-        filename = sprintf('%s/params_pass_%d.mat', trainParams.outputPath, passj);
-        save(filename, 'theta', 'trainParams');
-        fprintf('----------------------------------------\n');
-        fprintf('Testing after pass %d\n', passj);
-        [ ~, tresults ] = test(filename, 'zeroshot_test_batch', trainParams.imageDataset);
-        statistics.testAccuracies(passj / trainParams.saveEvery) = tresults.accuracy;
-        statistics.testAvgPrecisions(passj / trainParams.saveEvery) = tresults.avgPrecision;
-        statistics.testAvgRecalls(passj / trainParams.saveEvery) = tresults.avgRecall;
-        if results.accuracy >= 0.7
-            break;
-        end
-    end    
+    [~, ~, ~, ~] = minFunc( @(p) debugParams.costFunction(p, ddataToUse, debugParams), debugTheta, debugOptions);
+end 
+
+% Initialize actual weights
+disp('Initializing parameters');
+trainParams.inputSize = size(batches{1}.imgs, 1);
+trainParams.outputSize = size(wordTable, 1);
+[ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);
+dataToUse.categoryNames = categoryNames;
+
+if not(exist(outputPath, 'dir'))
+    mkdir(outputPath);
 end
+
+globalStart = tic;
+for j = 1:trainParams.maxPass
+    for i = 1:numBatches
+        dataToUse.imgs = batches{i}.imgs;
+        dataToUse.categories = batches{i}.categories;
+        dataToUse.wordTable = wordTable;
+
+        if not(trainParams.disableAutoencoder)
+            options.MaxIter = trainParams.maxAutoencIter;
+            [theta, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, trainParams ), theta, options);
+            save(sprintf('%s/autoenc_params.mat', outputPath), 'theta', 'trainParams');
+        end
+
+        if trainParams.preTrain
+            disp('Start pre-train');
+            % Disable replication and one-shot learning initially
+            oldNumReplicate = trainParams.numReplicate;
+            oldDropoutFraction = trainParams.dropoutFraction; 
+            trainParams.numReplicate = 0;
+            trainParams.dropoutFraction = 1;
+            theta = trainParams.trainFunction(trainParams, dataToUse, theta);
+            disp('End pre-train');
+        end
+
+        trainParams.numReplicate = oldNumReplicate;
+        trainParams.dropoutFraction = oldDropoutFraction;
+        trainParams.maxIter = 5;
+        theta = trainParams.trainFunction(trainParams, dataToUse, theta);
+    end
+end
+
+gtime = toc(globalStart);
+fprintf('Total time: %f s\n', gtime);
 
 %% Save learned parameters
 disp('Saving final learned parameters');
-save(sprintf('%s/params_final.mat', trainParams.outputPath),'theta', 'trainParams');
-save(sprintf('%s/statistics.mat', trainParams.outputPath), 'statistics');
+save(sprintf('%s/params_final.mat', outputPath), 'theta', 'trainParams');
+disp('<END_EXPERIMENT>');
+
