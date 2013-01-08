@@ -21,7 +21,7 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'zeroFilePrefix',      'zeroshot_batch'}; % batch for zero shot images
           {'fixRandom',           false};  % whether to fix the random number generator
-          {'enableGradientCheck', true};  % whether to enable gradient check
+          {'enableGradientCheck', false};  % whether to enable gradient check
           {'preTrain',            true};   % whether to train on non-zero-shot first
           {'reloadData',          true};   % whether to reload data when this script is called (disable for batch jobs)
           
