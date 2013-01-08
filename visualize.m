@@ -1,4 +1,4 @@
-function [] = visualize(mappedX, mappedWordTable, label_names)
+function [] = visualize(mappedX, Y, mappedWordTable, label_names)
 
 gscatter(mappedX(:,1), mappedX(:,2), label_names(Y), [], [], 7);
 hold on;
