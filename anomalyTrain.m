@@ -79,7 +79,7 @@ end
 
 % Initialize actual weights
 disp('Initializing parameters');
-trainParams.inputSize = size(wordTable, 1);
+trainParams.inputSize = size(mappedImgs, 1);
 trainParams.outputSize = size(imgs, 1);
 [ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);
 
