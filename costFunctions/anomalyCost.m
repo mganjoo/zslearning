@@ -6,7 +6,7 @@ function [cost,grad] = anomalyCost(theta, data, params)
 numImages = size(data.imgs, 2);
 
 % Perform feedforward passes on all data
-a2 = params.f(data.mappedImgs);
+a2 = data.mappedImgs;
 h = bsxfun(@plus, W{1} * a2, b{1});
 
 % Calculate overall cost function

@@ -7,8 +7,9 @@ addpath costFunctions/;
 fields = {{'wordDataset',         'acl'};            % type of embedding dataset to use ('turian.200', 'acl')
           {'imageDataset',        'cifar10'};        % CIFAR dataset type
           {'lambda',              1E-3};   % regularization parameter
-          {'maxIter',             80};     % maximum number of minFunc iterations on a batch
+          {'maxIter',             100};     % maximum number of minFunc iterations on a batch
           {'maxPass',             1};      % maximum number of passes through training data
+          {'saveEvery',           20};     % save every
           
           % options
           {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
@@ -90,7 +91,13 @@ end
 globalStart = tic;
 dataToUse.imgs = imgs;
 dataToUse.mappedImgs = mappedX;
-theta = trainParams.trainFunction(trainParams, dataToUse, theta);
+reps = trainParams.maxIter / trainParams.saveEvery;
+trainParams.maxIter = trainParams.saveEvery;
+for i = 1:reps
+    theta = trainParams.trainFunction(trainParams, dataToUse, theta);
+    disp('Saving intermediate parameters');
+    save(sprintf('%s/params_%d.mat', outputPath, i), 'theta', 'trainParams');
+end
 
 gtime = toc(globalStart);
 fprintf('Total time: %f s\n', gtime);
