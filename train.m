@@ -7,8 +7,8 @@ addpath costFunctions/;
 fields = {{'wordDataset',         'acl'};            % type of embedding dataset to use ('turian.200', 'acl')
           {'imageDataset',        'cifar10'};        % CIFAR dataset type
           {'lambda',              1E-3};   % regularization parameter
-          {'numReplicate',        15};     % one-shot replication
-          {'dropoutFraction',     0.5};    % drop-out fraction
+          {'numReplicate',        0};     % one-shot replication
+          {'dropoutFraction',     1};    % drop-out fraction
           {'costFunction',        @cwTrainingCost}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'hiddenSize',          100};

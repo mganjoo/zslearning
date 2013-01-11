@@ -16,11 +16,8 @@ k = 1;
 for j = 1:length(zeroCategoryTypes)
     d = dist(:, zeroCategoryTypes(j)) / sum(dist(:, zeroCategoryTypes(j)));
     for i = 1:numAdditionalCategories
-        if i == zeroCategoryTypes(j)
-            continue;
-        end
-        interpol = trainParams.distanceMultiplier * d(i);    
-        additionalWordTable(:, k) = interpol * wordTable(:, zeroCategoryTypes(j)) + (1-interpol) * wordTable(:, rankedIndices(i + 1, j));
+        interpol = trainParams.distanceMultiplier * d(rankedIndices(i+1, zeroCategoryTypes(j)));    
+        additionalWordTable(:, k) = interpol * wordTable(:, zeroCategoryTypes(j)) + (1-interpol) * wordTable(:, rankedIndices(i + 1, zeroCategoryTypes(j)));
         k = k + 1;
     end
 end
