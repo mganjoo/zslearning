@@ -34,15 +34,15 @@ if not(exist(outputPath, 'dir'))
     mkdir(outputPath);
 end
 
+disp('Zero categories:');
+disp(zeroCategories);
+nonZeroCategories = setdiff(1:numCategories, zeroCategories);
+
 numTrain = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
 numTrain1 = round(trainFrac * numTrain);
 numTrain2 = numTrain - numTrain1;
 numTrainPerCat1 = numTrain1 / length(nonZeroCategories);
 numTrainPerCat2 = numTrain2 / length(nonZeroCategories);
-
-disp('Zero categories:');
-disp(zeroCategories);
-nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 
 % divide into two training sets (for mapping function and threshold) 
 X1 = zeros(size(trainX, 1), numTrain1);
