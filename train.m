@@ -9,10 +9,10 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'lambda',              1E-3};   % regularization parameter
           {'numReplicate',        0};     % one-shot replication
           {'dropoutFraction',     1};    % drop-out fraction
-          {'costFunction',        @cwTrainingCost}; % training cost function
+          {'costFunction',        @mapOneShotCostDropout}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'hiddenSize',          100};
-          {'maxIter',             80};     % maximum number of minFunc iterations on a batch
+          {'maxIter',             400};    % maximum number of minFunc iterations on a batch
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
@@ -62,97 +62,102 @@ end
 
 trainParams.f = @tanh;             % function to use in the neural network activations
 trainParams.f_prime = @tanh_prime; % derivative of f
-trainParams.doEvaluate = true;
+trainParams.doEvaluate = false;
 trainParams.testFilePrefix = 'zeroshot_test_batch';
 trainParams.autoencMult = trainParams.autoencMultStart;
 
-if trainParams.reloadData
-    %% Load batches of training images
-    batchFilePath   = ['image_data/batches/' trainParams.imageDataset];
-    files = dir([batchFilePath '/' trainParams.batchFilePrefix '*.mat']);
-    numBatches = length(files) - 1;
-    assert(numBatches >= 1);
-    clear files;
+%% Load batches of training images
+batchFilePath   = ['image_data/batches/' trainParams.imageDataset];
+files = dir([batchFilePath '/' trainParams.batchFilePrefix '*.mat']);
+numBatches = length(files) - 1;
+assert(numBatches >= 1);
+clear files;
 
-    disp('Loading batches of training images and initializing parameters');
-    batches = cell(1, numBatches);
-    for i = 1:numBatches
-        [batches{i}.imgs, batches{i}.categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, i);
-    end
-    trainParams.imageColumnSize = size(batches{1}.imgs, 1);
-
-    %% Load one-shot training images
-    [zeroimgs, zerocategories, zeroCategoryNames] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
-    dataToUse.zeroimgs = zeroimgs(:, 1);
-    dataToUse.zerocategories = zerocategories(:, 1);
-
-    %% Load word representations
-    disp('Loading word representations');
-    t = load(['word_data/' trainParams.wordDataset '/' trainParams.imageDataset '/wordTable.mat']);
-    wordTable = zeros(size(t.wordTable, 1), length(categoryNames) + length(zeroCategoryNames));
-    for i = 1:length(categoryNames)
-        j = ismember(t.label_names, categoryNames{i}) == true;
-        wordTable(:, i) = t.wordTable(:, j);
-    end
-    for i = 1:length(zeroCategoryNames)
-        j = ismember(t.label_names, zeroCategoryNames{i}) == true;
-        wordTable(:, i + length(categoryNames)) = t.wordTable(:, j);
-        zerocategories = zerocategories + length(categoryNames);
-    end
-    clear t;
-    
-    %% Load validation batch
-    disp('Loading validation batch');
-    [dataToUse.validImgs, dataToUse.validCategories, ~] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, numBatches+1);
-
-    %% Load test images
-    disp('Loading test images');
-    [dataToUse.testImgs, dataToUse.testCategories, dataToUse.testOriginalCategoryNames] = loadBatch(trainParams.testFilePrefix, trainParams.imageDataset);
-
-    % Change the names of the categories to be included in the test set
-    dataset = trainParams.imageDataset;
-    if strcmp(dataset, 'cifar10') == true
-        testCategoryNames = loadCategoryNames(dataset);
-    elseif strcmp(dataset, 'cifar96') == true
-        testCategoryNames = loadCategoryNames(dataset, { 'orange', 'camel' });
-    elseif strcmp(dataset, 'cifar106') == true
-        testCategoryNames = loadCategoryNames(dataset, { 'truck', 'lion', 'orange', 'camel' });
-    else
-        error('Not a valid dataset');
-    end
-    w = load(['word_data/' trainParams.wordDataset '/' dataset '/wordTable.mat']);
-    trainParams.embeddingSize = size(w.wordTable, 1);
-    dataToUse.testWordTable = zeros(trainParams.embeddingSize, length(testCategoryNames));
-    for categoryIndex = 1:length(testCategoryNames)
-        icategoryWord = ismember(w.label_names, testCategoryNames(categoryIndex)) == true;
-        dataToUse.testWordTable(:, categoryIndex) = w.wordTable(:, icategoryWord);
-    end
-    dataToUse.testCategoryNames = testCategoryNames;
-    
-    % Load 50 random words from the vocabulary for an alternative
-    % evaluation method
-    disp('Loading random words for evaluation');
-    ee = load(['word_data/' trainParams.wordDataset '/embeddings.mat']);
-    vv = load(['word_data/' trainParams.wordDataset '/vocab.mat']);
-    % Pick 50 random nouns including the test category
-    randIndices = randi(length(vv.vocab), 1, 49);
-    if strcmp(dataset, 'cifar10') == true
-        extraNames = { 'cat', 'truck' };
-    elseif strcmp(dataset, 'cifar96') == true
-        extraNames = { 'lion', 'boy' };
-    elseif strcmp(dataset, 'cifar106') == true
-        extraNames = { 'cat', 'boy' };
-    else
-        error('Not a valid dataset');
-    end
-    dataToUse.randCategoryNames = [ extraNames vv.vocab(:, randIndices) ];
-    dataToUse.randWordTable = [ zeros(trainParams.embeddingSize, length(extraNames)) ee.embeddings(:, randIndices) ];
-    for categoryIndex = 1:length(extraNames)
-        icategoryWord = ismember(vv.vocab, testCategoryNames(categoryIndex)) == true;
-        dataToUse.randWordTable(:, categoryIndex) = ee.embeddings(:, icategoryWord);
-    end
-    clear ee vv;
+disp('Loading batches of training images and initializing parameters');
+batches = cell(1, numBatches);
+for i = 1:numBatches
+    [batches{i}.imgs, batches{i}.categories, categoryNames] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, i);
 end
+trainParams.imageColumnSize = size(batches{1}.imgs, 1);
+
+%% Load one-shot training images
+[zeroimgs, zerocategories, zeroCategoryNames] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
+dataToUse.zeroimgs = zeroimgs(:, 1);
+dataToUse.zerocategories = zerocategories(:, 1);
+
+%% Load word representations
+disp('Loading word representations');
+t = load(['word_data/' trainParams.wordDataset '/' trainParams.imageDataset '/wordTable.mat']);
+wordTable = zeros(size(t.wordTable, 1), length(categoryNames) + length(zeroCategoryNames));
+for i = 1:length(categoryNames)
+    j = ismember(t.label_names, categoryNames{i}) == true;
+    wordTable(:, i) = t.wordTable(:, j);
+end
+for i = 1:length(zeroCategoryNames)
+    j = ismember(t.label_names, zeroCategoryNames{i}) == true;
+    wordTable(:, i + length(categoryNames)) = t.wordTable(:, j);
+    zerocategories = zerocategories + length(categoryNames);
+end
+
+% load unseen word table
+if strcmp(dataset, 'cifar10') == true
+    zeroCategories = [ 4, 10 ];
+    unseenWordTable = t.wordTable(:, zeroCategories);
+end
+clear t;
+
+%% Load validation batch
+disp('Loading validation batch');
+[dataToUse.validImgs, dataToUse.validCategories, ~] = loadBatch(trainParams.batchFilePrefix, trainParams.imageDataset, numBatches+1);
+
+%% Load test images
+disp('Loading test images');
+[dataToUse.testImgs, dataToUse.testCategories, dataToUse.testOriginalCategoryNames] = loadBatch(trainParams.testFilePrefix, trainParams.imageDataset);
+
+% Change the names of the categories to be included in the test set
+dataset = trainParams.imageDataset;
+if strcmp(dataset, 'cifar10') == true
+    testCategoryNames = loadCategoryNames(dataset);
+elseif strcmp(dataset, 'cifar96') == true
+    testCategoryNames = loadCategoryNames(dataset, { 'orange', 'camel' });
+elseif strcmp(dataset, 'cifar106') == true
+    testCategoryNames = loadCategoryNames(dataset, { 'truck', 'lion', 'orange', 'camel' });
+else
+    error('Not a valid dataset');
+end
+w = load(['word_data/' trainParams.wordDataset '/' dataset '/wordTable.mat']);
+trainParams.embeddingSize = size(w.wordTable, 1);
+dataToUse.testWordTable = zeros(trainParams.embeddingSize, length(testCategoryNames));
+for categoryIndex = 1:length(testCategoryNames)
+    icategoryWord = ismember(w.label_names, testCategoryNames(categoryIndex)) == true;
+    dataToUse.testWordTable(:, categoryIndex) = w.wordTable(:, icategoryWord);
+end
+dataToUse.testCategoryNames = testCategoryNames;
+
+% Load 50 random words from the vocabulary for an alternative
+% evaluation method
+disp('Loading random words for evaluation');
+ee = load(['word_data/' trainParams.wordDataset '/embeddings.mat']);
+vv = load(['word_data/' trainParams.wordDataset '/vocab.mat']);
+% Pick 50 random nouns including the test category
+randIndices = randi(length(vv.vocab), 1, 49);
+if strcmp(dataset, 'cifar10') == true
+    extraNames = { 'cat', 'truck' };
+elseif strcmp(dataset, 'cifar96') == true
+    extraNames = { 'lion', 'boy' };
+elseif strcmp(dataset, 'cifar106') == true
+    extraNames = { 'cat', 'boy' };
+else
+    error('Not a valid dataset');
+end
+dataToUse.randCategoryNames = [ extraNames vv.vocab(:, randIndices) ];
+dataToUse.randWordTable = [ zeros(trainParams.embeddingSize, length(extraNames)) ee.embeddings(:, randIndices) ];
+for categoryIndex = 1:length(extraNames)
+    icategoryWord = ismember(vv.vocab, testCategoryNames(categoryIndex)) == true;
+    dataToUse.randWordTable(:, categoryIndex) = ee.embeddings(:, icategoryWord);
+end
+clear ee vv;
+
 
 %% First check the gradient of our minimizer
 if trainParams.enableGradientCheck
@@ -205,20 +210,20 @@ for j = 1:trainParams.maxPass
             save(sprintf('%s/autoenc_params.mat', outputPath), 'theta', 'trainParams');
         end
 
-        if trainParams.preTrain
-            disp('Start pre-train');
+%            if trainParams.preTrain
+%                disp('Start pre-train');
             % Disable replication and one-shot learning initially
-            oldNumReplicate = trainParams.numReplicate;
-            oldDropoutFraction = trainParams.dropoutFraction; 
-            trainParams.numReplicate = 0;
-            trainParams.dropoutFraction = 1;
-            theta = trainParams.trainFunction(trainParams, dataToUse, theta);
-            disp('End pre-train');
-        end
+%                oldNumReplicate = trainParams.numReplicate;
+%                oldDropoutFraction = trainParams.dropoutFraction; 
+%                trainParams.numReplicate = 0;
+%                trainParams.dropoutFraction = 1;
+%                theta = trainParams.trainFunction(trainParams, dataToUse, theta);
+%                disp('End pre-train');
+%            end
 
-        trainParams.numReplicate = oldNumReplicate;
-        trainParams.dropoutFraction = oldDropoutFraction;
-        trainParams.maxIter = 5;
+%            trainParams.numReplicate = oldNumReplicate;
+%            trainParams.dropoutFraction = oldDropoutFraction;
+%            trainParams.maxIter = 5;
         theta = trainParams.trainFunction(trainParams, dataToUse, theta);
     end
 end

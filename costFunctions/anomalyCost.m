@@ -21,5 +21,4 @@ Wgrad = del * a2' / numImages + params.lambda * W{1};
 bgrad = sum(del, 2) / numImages;
 
 grad = [Wgrad(:) ; bgrad(:)];
-
 end

@@ -1,38 +1,15 @@
-function [ results ] = mapThresholdDoEvaluate( images, categories, zeroCategoryTypes, categoryNames, wordTable, thetaMapping, thetaAnomaly, thetaSvm, trainParams, doPrint )
+function [ results ] = mapGaussianThresholdDoEvaluate ( images, categories, zeroCategoryTypes, categoryNames, wordTable, thetaMapping, thetaSvm, trainParams, maxLogprobability, mu, sigma, priors, doPrint )
 
 addpath toolbox/pwmetric;
-
-[ W, b ] = stack2param(thetaMapping, trainParams.mappingDecodeInfo);
 
 numImages = size(images, 2);
 numCategories = size(wordTable, 2);
 
-% Feedforward
-mappedImages = bsxfun(@plus, 0.5 * W{1} * images, b{1});
-
-% Remove zero-shot classes from word table
-% Build unseen word table
-% TODO: Make a random word table with 50 nouns
 keep = arrayfun(@(x) ~ismember(x, zeroCategoryTypes), 1:length(categoryNames));
 unseenWordTable = wordTable(:, ~keep);
-nonzeroCategories = setdiff(1:length(categoryNames), zeroCategoryTypes);
-guessedCategories = zeros(size(categories));
+nonzeroCategoryTypes = setdiff(1:length(categoryNames), zeroCategoryTypes);
 
-% Determine if seen or unseen
-[Wanomaly, banomaly] = stack2param(thetaAnomaly, trainParams.anomalyDecodeInfo);
-h = bsxfun(@plus, Wanomaly{1} * mappedImages, banomaly{1});
-t = sum((h - images).^2);
-seenIndices = t < trainParams.cutoff;
-unseenIndices = ~seenIndices;
-
-% If seen
-[~, gind] = max(thetaSvm*images(:, seenIndices), [], 1);
-guessedCategories(seenIndices) = nonzeroCategories(gind);
-
-% If unseen
-tDist = slmetric_pw(unseenWordTable, mappedImages(:, unseenIndices), 'eucdist');
-[~, tGuessedCategories ] = min(tDist);
-guessedCategories(unseenIndices) = zeroCategoryTypes(tGuessedCategories);
+guessedCategories = feedforwardDiscriminant(thetaMapping, thetaSvm, trainParams, unseenWordTable, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes, mu, sigma, priors);
 
 % Calculate scores
 confusion = zeros(numCategories, numCategories);

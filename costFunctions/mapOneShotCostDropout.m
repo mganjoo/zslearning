@@ -2,14 +2,14 @@ function [cost, grad] = mapOneShotCostDropout( theta, data, params )
 
 [ W, b ] = stack2param(theta, params.decodeInfo);
 
-numOrigImages = size(data.imgs, 2);
-data.imgs = [data.imgs repmat(data.zeroimgs, 1, params.numReplicate)];
-data.categories = [data.categories repmat(data.zerocategories, 1, params.numReplicate)];
+%numOrigImages = size(data.imgs, 2);
+%data.imgs = [data.imgs repmat(data.zeroimgs, 1, params.numReplicate)];
+%data.categories = [data.categories repmat(data.zerocategories, 1, params.numReplicate)];
 
 numImages = size(data.imgs, 2);
 
 % Set x% of the terms to zero
-data.imgs(rand(size(data.imgs))>params.dropoutFraction) = 0;
+%data.imgs(rand(size(data.imgs))>params.dropoutFraction) = 0;
 
 % Feedforward
 h = bsxfun(@plus, W{1} * data.imgs, b{1});

@@ -9,8 +9,9 @@ if __name__ == "__main__":
     for fname in glob.glob("out*.log"):
         dname = os.path.splitext(fname)[0]
         with open(fname, 'r') as f:
-            if not os.path.exists(dname):
-                os.makedirs(dname)
+            if os.path.exists(dname):
+                continue
+            os.makedirs(dname)
             # Get current directory and change
             for line in f:
                 pmatch = re.match('<BEGIN_EXPERIMENT ([^\s]+)>', line)
