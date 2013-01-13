@@ -88,10 +88,10 @@ mapped = bsxfun(@plus, 0.5 * W{1} * X2, b{1});
 sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, mu, sigma, priors, zeroCategories));
 
 % Test
-seenAccuracies = zeros(1, (1-trainFrac) * numTrain / 100);
-unseenAccuracies = zeros(1, (1-trainFrac) * numTrain / 100);
+seenAccuracies = numTrain2 / 100;
+unseenAccuracies = numTrain2 / 100;
 
-for i = (1-trainFrac) * numTrain / 100
+for i = 1:numTrain2/100
     cutoff = sortedLogprobabilities((i-1)*100+1);
 
     % Test Gaussian classifier
