@@ -16,7 +16,9 @@ if not(exist(outputPath, 'dir'))
     mkdir(outputPath);
 end
 
-for z1 = 1:numCategories-1
+% set z1 independently
+% z1 = 1;
+%for z1 = 1:numCategories-1
     for z2 = z1+1:numCategories
         zeroCategories = [z1 z2];
         disp('Zero categories:');
@@ -77,4 +79,4 @@ for z1 = 1:numCategories-1
             save(sprintf('%s/out_%s_%s.mat', outputPath, label_names{z1}, label_names{z2}), 'results', 'seenAccuracies', 'unseenAccuracies');
         end        
     end
-end
+%end

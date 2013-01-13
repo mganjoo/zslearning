@@ -18,7 +18,7 @@ for i=1:numLabels
     %mu(i,:) = mean(labelImageFeatures, 2)';
     %sigma(i,:,:) = cov(labelImageFeatures');
     %sigma(i,:,:) = diag(var(labelImageFeatures,[],2));
-    sigma(i,:,:) = diag(repmat(sum(sum((labelImageFeatures - repmat(labelMu, 1, size(ind, 1))).*(labelImageFeatures - repmat(labelMu, 1, size(ind, 1)))))/(numTraining*dim), dim, 1));
+    sigma(i,:,:) = diag(repmat(sum(sum((labelImageFeatures - repmat(labelMu, 1, length(ind))).*(labelImageFeatures - repmat(labelMu, 1, length(ind)))))/(numTraining*dim), dim, 1));
 end
 
 end
