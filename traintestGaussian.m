@@ -54,6 +54,7 @@ end
         % Train SVM features
         L = 0.01;
         thetaSvm = train_svm(X1', Y1', 1/L);
+        thetaSvm = thetaSvm';
         
         disp('Training Gaussian classifier');
         % Train Gaussian classifier

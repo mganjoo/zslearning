@@ -29,6 +29,7 @@ t = truePos ./ sum(confusion, 2);
 results.avgPrecision = mean(t(isfinite(t), :));
 t = truePos' ./ sum(confusion, 1);
 results.avgRecall = mean(t(:, isfinite(t)));
+results.confusion = confusion;
 
 if doPrint == true
     disp(['Accuracy: ' num2str(results.accuracy)]);
