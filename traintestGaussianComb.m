@@ -4,7 +4,7 @@ addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
 addpath costFunctions/;
 
-dataset = 'cifar96';
+dataset = 'cifar10';
 wordset = 'acl';
 trainFrac = 0.8;
 
@@ -36,6 +36,10 @@ end
 
 numTrain = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
 
+% TODO! Change this to a more proper loop
+for z2 = z1+2:numCategories
+
+zeroCategories = [ z1 z2 ];
 disp('Zero categories:');
 disp(zeroCategories);
 nonZeroCategories = setdiff(1:numCategories, zeroCategories);
@@ -97,3 +101,4 @@ end
 zeroList = label_names(zeroCategories);
 zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
 save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'results', 'seenAccuracies', 'unseenAccuracies');
+end
