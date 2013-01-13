@@ -53,8 +53,9 @@ end
         disp('Training SVM features');
         % Train SVM features
         L = 0.01;
-        thetaSvm = train_svm(X1', Y1', 1/L);
-        thetaSvm = thetaSvm';
+        mappedCategories = zeroes(1, 10);
+        mappedCategories(nonZeroCategories) = 1:numCategories-2;
+        thetaSvm = train_svm(X1', mappedCategories(Y1)', 1/L)';
         
         disp('Training Gaussian classifier');
         % Train Gaussian classifier
@@ -77,7 +78,7 @@ end
             seenAccuracies(i) = results.seenAccuracy;
             unseenAccuracies(i) = results.unseenAccuracy;
             
-            save(sprintf('%s/out_%s_%s.mat', outputPath, label_names{z1}, label_names{z2}), 'results', 'seenAccuracies', 'unseenAccuracies');
         end        
+        save(sprintf('%s/out_%s_%s.mat', outputPath, label_names{z1}, label_names{z2}), 'results', 'seenAccuracies', 'unseenAccuracies');
     end
 %end
