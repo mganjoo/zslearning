@@ -40,20 +40,20 @@ nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 
 % divide into two training sets (for mapping function and threshold) 
 X1 = zeros(size(trainX, 1), trainFrac * numTrain);
-X2 = zeros(size(trainX, 1), (1 - trainFrac) * numTrain);
+X2 = zeros(size(trainX, 1), numTrain - trainFrac * numTrain);
 Y1 = zeros(1, trainFrac * numTrain);
-Y2 = zeros(1, (1 - trainFrac) * numTrain);
+Y2 = zeros(1, numTrain - trainFrac * numTrain);
 for i = 1:length(nonZeroCategories)
     [ ~, t ] = find(trainY == nonZeroCategories(i));
     X1(:, (i-1)*trainFrac*TOTAL_NUM_PER_CATEGORY+1:i*trainFrac*TOTAL_NUM_PER_CATEGORY) = trainX(:, t(1:trainFrac*TOTAL_NUM_PER_CATEGORY));
-    X2(:, (i-1)*(1-trainFrac)*TOTAL_NUM_PER_CATEGORY+1:i*(1-trainFrac)*TOTAL_NUM_PER_CATEGORY) = trainX(:, t((trainFrac*TOTAL_NUM_PER_CATEGORY+1:end));
+    X2(:, (i-1)*(TOTAL_NUM_PER_CATEGORY-trainFrac*TOTAL_NUM_PER_CATEGORY)+1:i*(TOTAL_NUM_PER_CATEGORY-trainFrac*TOTAL_NUM_PER_CATEGORY)) = trainX(:, t(trainFrac*TOTAL_NUM_PER_CATEGORY+1:end));
     Y1((i-1)*trainFrac*TOTAL_NUM_PER_CATEGORY+1:i*trainFrac*TOTAL_NUM_PER_CATEGORY) = trainY(t(1:trainFrac*TOTAL_NUM_PER_CATEGORY));
-    Y2((i-1)*(1-trainFrac)*TOTAL_NUM_PER_CATEGORY+1:i*(1-trainFrac)*TOTAL_NUM_PER_CATEGORY) = trainY(t(trainFrac*TOTAL_NUM_PER_CATEGORY+1:end));
+    Y2((i-1)*(TOTAL_NUM_PER_CATEGORY-trainFrac*TOTAL_NUM_PER_CATEGORY)+1:i*(TOTAL_NUM_PER_CATEGORY-trainFrac*TOTAL_NUM_PER_CATEGORY)) = trainY(t(trainFrac*TOTAL_NUM_PER_CATEGORY+1:end));
 end
 
 % permute
 order1 = randperm(trainFrac * numTrain);
-order2 = randperm((1-trainFrac) * numTrain);
+order2 = randperm(numTrain - trainFrac * numTrain);
 X1 = X1(:, order1);
 X2 = X2(:, order2);
 Y1 = Y1(order1);
@@ -66,7 +66,7 @@ fastTrain;
 disp('Training SVM features');
 % Train SVM features
 L = 0.01;
-mappedCategories = zeroes(1, numCategories);
+mappedCategories = zeros(1, numCategories);
 mappedCategories(nonZeroCategories) = 1:numCategories-length(zeroCategories);
 thetaSvm = train_svm(X1', mappedCategories(Y1)', 1/L)';
 
