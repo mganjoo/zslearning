@@ -69,7 +69,7 @@ for z1 = 1:numCategories-1
             seenAccuracies(i) = results.seenAccuracy;
             unseenAccuracies(i) = results.unseenAccuracy;
             
-            save(sprintf('%s/out_%s_%s.mat', label_names{z1}, label_names{z2}), 'results', 'seenAccuracies', 'unseenAccuracies');
+            save(sprintf('%s/out_%s_%s.mat', outputPath, label_names{z1}, label_names{z2}), 'results', 'seenAccuracies', 'unseenAccuracies');
         end        
     end
 end
