@@ -35,27 +35,31 @@ if not(exist(outputPath, 'dir'))
 end
 
 numTrain = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
+numTrain1 = round(trainFrac * numTrain);
+numTrain2 = numTrain - numTrain1;
+numTrainPerCat1 = numTrain1 / length(nonZeroCategories);
+numTrainPerCat2 = numTrain2 / length(nonZeroCategories);
 
 disp('Zero categories:');
 disp(zeroCategories);
 nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 
 % divide into two training sets (for mapping function and threshold) 
-X1 = zeros(size(trainX, 1), trainFrac * numTrain);
-X2 = zeros(size(trainX, 1), numTrain - trainFrac * numTrain);
-Y1 = zeros(1, trainFrac * numTrain);
-Y2 = zeros(1, numTrain - trainFrac * numTrain);
+X1 = zeros(size(trainX, 1), numTrain1);
+X2 = zeros(size(trainX, 1), numTrain2);
+Y1 = zeros(1, numTrain1);
+Y2 = zeros(1, numTrain2);
 for i = 1:length(nonZeroCategories)
     [ ~, t ] = find(trainY == nonZeroCategories(i));
-    X1(:, (i-1)*trainFrac*TOTAL_NUM_PER_CATEGORY+1:i*trainFrac*TOTAL_NUM_PER_CATEGORY) = trainX(:, t(1:trainFrac*TOTAL_NUM_PER_CATEGORY));
-    X2(:, (i-1)*(TOTAL_NUM_PER_CATEGORY-trainFrac*TOTAL_NUM_PER_CATEGORY)+1:i*(TOTAL_NUM_PER_CATEGORY-trainFrac*TOTAL_NUM_PER_CATEGORY)) = trainX(:, t(trainFrac*TOTAL_NUM_PER_CATEGORY+1:end));
-    Y1((i-1)*trainFrac*TOTAL_NUM_PER_CATEGORY+1:i*trainFrac*TOTAL_NUM_PER_CATEGORY) = trainY(t(1:trainFrac*TOTAL_NUM_PER_CATEGORY));
-    Y2((i-1)*(TOTAL_NUM_PER_CATEGORY-trainFrac*TOTAL_NUM_PER_CATEGORY)+1:i*(TOTAL_NUM_PER_CATEGORY-trainFrac*TOTAL_NUM_PER_CATEGORY)) = trainY(t(trainFrac*TOTAL_NUM_PER_CATEGORY+1:end));
+    X1(:, (i-1)*numTrainPerCat1+1:i*numTrainPerCat1) = trainX(:, t(1:numTrainPerCat1));
+    X2(:, (i-1)*numTrainPerCat2+1:i*numTrainPerCat2) = trainX(:, t(numTrainPerCat1+1:end));
+    Y1((i-1)*numTrainPerCat1+1:i*numTrainPerCat1) = trainY(t(1:numTrainPerCat1));
+    Y2((i-1)*numTrainPerCat2+1:i*numTrainPerCat2) = trainY(t(numTrainPerCat1+1:end));
 end
 
 % permute
-order1 = randperm(trainFrac * numTrain);
-order2 = randperm(numTrain - trainFrac * numTrain);
+order1 = randperm(numTrain1);
+order2 = randperm(numTrain2);
 X1 = X1(:, order1);
 X2 = X2(:, order2);
 Y1 = Y1(order1);
