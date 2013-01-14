@@ -68,6 +68,7 @@ Y2 = Y2(order2);
 disp('Training mapping function');
 % Train mapping function
 fastTrain;
+save(sprintf('%s/theta.mat', outputPath), 'theta');
 
 disp('Training SVM features');
 % Train SVM features
@@ -75,6 +76,7 @@ L = 0.01;
 mappedCategories = zeros(1, numCategories);
 mappedCategories(nonZeroCategories) = 1:numCategories-length(zeroCategories);
 thetaSvm = train_svm(X1', mappedCategories(Y1)', 1/L)';
+save(sprintf('%s/thetaSvm.mat', outputPath), 'thetaSvm');
 
 disp('Training Gaussian classifier');
 % Train Gaussian classifier
