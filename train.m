@@ -9,10 +9,10 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'lambda',              1E-3};   % regularization parameter
           {'numReplicate',        0};     % one-shot replication
           {'dropoutFraction',     1};    % drop-out fraction
-          {'costFunction',        @mapOneShotCostDropout}; % training cost function
+          {'costFunction',        @softmaxCost}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'hiddenSize',          100};
-          {'maxIter',             400};    % maximum number of minFunc iterations on a batch
+          {'maxIter',             200};    % maximum number of minFunc iterations on a batch
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
@@ -21,7 +21,7 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
           {'zeroFilePrefix',      'zeroshot_batch'}; % batch for zero shot images
           {'fixRandom',           false};  % whether to fix the random number generator
-          {'enableGradientCheck', false};  % whether to enable gradient check
+          {'enableGradientCheck', true};  % whether to enable gradient check
           {'preTrain',            true};   % whether to train on non-zero-shot first
           {'reloadData',          true};   % whether to reload data when this script is called (disable for batch jobs)
           
@@ -62,7 +62,7 @@ end
 
 trainParams.f = @tanh;             % function to use in the neural network activations
 trainParams.f_prime = @tanh_prime; % derivative of f
-trainParams.doEvaluate = false;
+trainParams.doEvaluate = true;
 trainParams.testFilePrefix = 'zeroshot_test_batch';
 trainParams.autoencMult = trainParams.autoencMultStart;
 
@@ -93,6 +93,7 @@ for i = 1:length(categoryNames)
     j = ismember(t.label_names, categoryNames{i}) == true;
     wordTable(:, i) = t.wordTable(:, j);
 end
+origNumCategories = length(categoryNames);
 for i = 1:length(zeroCategoryNames)
     j = ismember(t.label_names, zeroCategoryNames{i}) == true;
     wordTable(:, i + length(categoryNames)) = t.wordTable(:, j);
@@ -158,7 +159,6 @@ for categoryIndex = 1:length(extraNames)
 end
 clear ee vv;
 
-
 %% First check the gradient of our minimizer
 if trainParams.enableGradientCheck
     dimgs = rand(4, 10);
@@ -175,21 +175,26 @@ if trainParams.enableGradientCheck
     debugParams.autoencMult = 1E-2;
     debugParams.numReplicate = 3;
     debugParams.doEvaluate = false;
+    if strcmp(func2str(debugParams.costFunction), 'softmaxCost')
+        debugParams.outputSize = size(ddataToUse.wordTable, 2);
+    else
+        debugParams.outputSize = size(ddataToUse.wordTable, 1);
+    end
     debugParams.inputSize = size(ddataToUse.imgs, 1);
-    debugParams.outputSize = size(ddataToUse.wordTable, 1);
     debugParams.embeddingSize = size(dwordTable, 1);
     debugParams.imageColumnSize = size(dimgs, 1);
     [ debugTheta, debugParams.decodeInfo ] = initializeParameters(debugParams);
-    if not(trainParams.disableAutoencoder)
-        [~, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, ddataToUse, debugParams), debugTheta, debugOptions);
-    end
     [~, ~, ~, ~] = minFunc( @(p) debugParams.costFunction(p, ddataToUse, debugParams), debugTheta, debugOptions);
 end 
 
 % Initialize actual weights
 disp('Initializing parameters');
 trainParams.inputSize = size(batches{1}.imgs, 1);
-trainParams.outputSize = size(wordTable, 1);
+if strcmp(func2str(debugParams.costFunction), 'softmaxCost')
+    trainParams.outputSize = origNumCategories;
+else
+    trainParams.outputSize = size(wordTable, 1);
+end
 [ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);
 dataToUse.categoryNames = categoryNames;
 
@@ -203,27 +208,6 @@ for j = 1:trainParams.maxPass
         dataToUse.imgs = batches{i}.imgs;
         dataToUse.categories = batches{i}.categories;
         dataToUse.wordTable = wordTable;
-
-        if not(trainParams.disableAutoencoder)
-            options.MaxIter = trainParams.maxAutoencIter;
-            [theta, ~, ~, ~] = minFunc( @(p) sparseAutoencoderCost(p, dataToUse, trainParams ), theta, options);
-            save(sprintf('%s/autoenc_params.mat', outputPath), 'theta', 'trainParams');
-        end
-
-%            if trainParams.preTrain
-%                disp('Start pre-train');
-            % Disable replication and one-shot learning initially
-%                oldNumReplicate = trainParams.numReplicate;
-%                oldDropoutFraction = trainParams.dropoutFraction; 
-%                trainParams.numReplicate = 0;
-%                trainParams.dropoutFraction = 1;
-%                theta = trainParams.trainFunction(trainParams, dataToUse, theta);
-%                disp('End pre-train');
-%            end
-
-%            trainParams.numReplicate = oldNumReplicate;
-%            trainParams.dropoutFraction = oldDropoutFraction;
-%            trainParams.maxIter = 5;
         theta = trainParams.trainFunction(trainParams, dataToUse, theta);
     end
 end

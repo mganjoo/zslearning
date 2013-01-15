@@ -1,18 +1,19 @@
 function [cost,grad] = softmaxCost(theta, data, params)
 
-W = stack2param(theta, decodeInfo);
+W = stack2param(theta, params.decodeInfo);
+numCategories = size(W{1}, 1);
 
-pred = exp(W*data.imgs); % k by n matrix with all calcs needed
+pred = exp(W{1}*data.imgs); % k by n matrix with all calcs needed
 pred = bsxfun(@rdivide,pred,sum(pred));
 m = length(data.categories);
 truth_inds = sub2ind(size(pred),data.categories,1:m);
-cost = -sum(log(pred(truth_inds)))/m + (params.lambda/2)*sum(sum(W.^2));
+cost = -sum(log(pred(truth_inds)))/m + (params.lambda/2)*sum(sum(W{1}.^2));
 
 truth = zeros(size(pred));
 truth(truth_inds) = 1;
 error = pred - truth;
-Wgrad = (error*data.imgs')/m + params.lambda*W;
+Wgrad = (error*data.imgs')/m + params.lambda*W{1};
 
-grad = [ Wgrad(:) ];
+grad = Wgrad(:);
 
 end
