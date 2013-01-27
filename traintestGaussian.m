@@ -68,7 +68,7 @@ Y2 = Y2(order2);
 disp('Training mapping function');
 % Train mapping function
 fastTrain;
-save(sprintf('%s/theta.mat', outputPath), 'theta');
+save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
 
 disp('Training SVM features');
 % Train SVM features

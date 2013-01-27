@@ -1,7 +1,6 @@
 function [cost,grad] = softmaxCost(theta, data, params)
 
 W = stack2param(theta, params.decodeInfo);
-numCategories = size(W{1}, 1);
 
 pred = exp(W{1}*data.imgs); % k by n matrix with all calcs needed
 pred = bsxfun(@rdivide,pred,sum(pred));

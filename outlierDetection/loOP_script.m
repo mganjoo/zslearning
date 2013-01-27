@@ -1,15 +1,9 @@
-%loOP_script
+addpath ../toolbox/pwmetric;
 
 % use this many points to define the neighborhood 
 kNN = 20;
-
 lambda = 3;
-
-% needs slmetric_pw
-addpath(genpath('D:\projects\toolbox'))
-
-
-load('ex8data1.mat');
+load('ex8data2.mat');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  Compute Local Outlier Probabilities  %
@@ -21,22 +15,21 @@ load('ex8data1.mat');
 allDist = slmetric_pw(X',X','eucdist');
 
 %first row are just the points, then follow the nearest neighbors
-[allPointsNNDistances allPointsNN] = sort(allDist);
+[allPointsNNDistances, allPointsNN] = sort(allDist);
 
 S = allPointsNN(2:kNN+1,:);
 Sdist = allPointsNNDistances(2:kNN+1,:);
 sigma = sqrt(sum(allPointsNNDistances.^2)./kNN);
 pdist = lambda * sigma;
-% expected value: E_{s\in S(o)}[pdist(s,S(s))]
 Epdist = mean(pdist(S));
 plof = pdist./Epdist -1;
 nplof = lambda * sqrt(mean(plof.^2));
 loop = erf(plof./(nplof * sqrt(2)));
 loop(loop<0) = 0;
 
-
 % outlier threshold 
 outliers = loop>=0.5;
+
 %  Visualize the example dataset
 fprintf('Visualizing example dataset for outlier detection.\n\n');
 hold on
@@ -53,21 +46,19 @@ allDist_test = slmetric_pw(X',Xval','eucdist');
 
 % first row are just the points, then follow the nearest neighbors
 % for each test point, we look at the closest training points only
-[allPointsNNDistances_test allPointsNN_test] = sort(allDist_test);
+[allPointsNNDistances_test, allPointsNN_test] = sort(allDist_test);
 S_test = allPointsNN_test(2:kNN+1,:);
 Sdist_test = allPointsNNDistances_test(2:kNN+1,:);
 sigma_test = sqrt(sum(allPointsNNDistances_test.^2)./kNN);
 pdist_test = lambda * sigma_test;
 Epdist_test = mean(pdist(S_test)); 
 plof_test = pdist_test./Epdist_test -1;
-%nplof = lambda * sqrt(mean(plof_test.^2)); stays from train
-loop_test = erf(plof_test./(nplof * sqrt(2)));
+loop_test = erf(plof_test./(nplof * sqrt(2))); % use nplof from train
 loop_test(loop_test<0) = 0;
 outliers_test = loop_test>=0.5;
 
 fprintf('Visualizing test example dataset for outlier detection.\n\n');
 hold on
-% figure;
 plot(Xval(:, 1), Xval(:, 2), 'bx');
 axis([0 30 0 30]);
 
