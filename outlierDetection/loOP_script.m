@@ -3,7 +3,7 @@ addpath ../toolbox/pwmetric;
 % use this many points to define the neighborhood 
 kNN = 20;
 lambda = 3;
-load('ex8data2.mat');
+load('ex8data1.mat');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  Compute Local Outlier Probabilities  %
@@ -34,7 +34,7 @@ outliers = loop>=0.5;
 fprintf('Visualizing example dataset for outlier detection.\n\n');
 hold on
 plot(X(:, 1), X(:, 2), 'bx');
-axis([0 30 0 30]);
+%axis([0 30 0 30]);
 
 plot(X(outliers, 1), X(outliers, 2), 'ro', 'LineWidth', 2, 'MarkerSize', 10);
 disp(['Found ' num2str(sum(outliers)) ' outliers'])
@@ -59,8 +59,8 @@ outliers_test = loop_test>=0.5;
 
 fprintf('Visualizing test example dataset for outlier detection.\n\n');
 hold on
-plot(Xval(:, 1), Xval(:, 2), 'bx');
-axis([0 30 0 30]);
+plot(Xval(:, 1), Xval(:, 2), 'mx');
+%axis([0 30 0 30]);
 
 plot(Xval(outliers_test, 1), Xval(outliers_test, 2), 'go', 'LineWidth', 2, 'MarkerSize', 10);
 disp(['Found ' num2str(sum(outliers_test)) ' test outliers, ' num2str(sum(outliers_test==yval')) '/' num2str(length(yval)) ' correct.'])

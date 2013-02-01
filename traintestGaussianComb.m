@@ -1,3 +1,6 @@
+% Train and test various combinations of CIFAR-10 zero-shot classes 
+% TODO: integrate outlier detection into pipeline
+
 addpath anomalyFunctions/;
 addpath toolbox/;
 addpath toolbox/minFunc/;
