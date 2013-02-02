@@ -51,10 +51,10 @@ for i = 1:numTrain/600
 end
 
 % Train and test anomaly detector
-thresholds = 0:0.1:0.9;
+thresholds = 0.05:0.05:0.5;
 seenAccuracies = zeros(10, length(thresholds));
 unseenAccuracies = zeros(10, length(thresholds));
-lambdas = 3:8;
+lambdas = 4:12;
 for lambda = lambdas
     fprintf('Lambda: %d\n', lambda);
     [ nplof, pdist ] = trainOutlierPriors(trainX, knn, lambda);
@@ -71,6 +71,12 @@ for lambda = lambdas
     end
 end
 
-plot(0:0.1:0.9, [seenAccuracies; unseenAccuracies]);
-hold on;
-plot(0:0.1:0.9, [oseenAccuracies; ounseenAccuracies], '--');
+% plot(0:0.1:0.9, [seenAccuracies; unseenAccuracies]);
+% hold on;
+% plot(0:0.1:0.9, [oseenAccuracies; ounseenAccuracies], '--');
+plot(0:0.1:0.9, [unseenAccuracies]);
+leg = cell(1, length(lambdas));
+for i = 1:length(lambdas)
+    leg{i} = num2str(lambdas(i));
+end
+legend(leg);

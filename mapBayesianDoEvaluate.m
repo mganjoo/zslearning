@@ -1,15 +1,33 @@
-function [ results ] = mapGaussianThresholdDoEvaluate ( images, categories, zeroCategoryTypes, categoryNames, wordTable, thetaMapping, thetaSvm, trainParams, maxLogprobability, mu, sigma, priors, doPrint )
+function [ guessedCategories, results ] = mapBayesianDoEvaluate(thetaSeenSoftmax, thetaUnseenSoftmax, ...
+    thetaMapping, seenSmTrainParams, unseenSmTrainParams, mapTrainParams, trainX, images, ...
+    categories, lambda, knn, nplof, pdist, zeroCategoryTypes, nonZeroCategoryTypes, categoryNames, doPrint)
 
-addpath toolbox/pwmetric;
+addpath toolbox;
 
 numImages = size(images, 2);
-numCategories = size(wordTable, 2);
+numCategories = length(zeroCategoryTypes) + length(nonZeroCategoryTypes);
+Ws = stack2param(thetaSeenSoftmax, seenSmTrainParams.decodeInfo);
+Wu = stack2param(thetaUnseenSoftmax, unseenSmTrainParams.decodeInfo);
 
-keep = arrayfun(@(x) ~ismember(x, zeroCategoryTypes), 1:length(categoryNames));
-unseenWordTable = wordTable(:, ~keep);
-nonzeroCategoryTypes = setdiff(1:length(categoryNames), zeroCategoryTypes);
+[ W, b ] = stack2param(thetaMapping, mapTrainParams.decodeInfo);
+mappedImages = bsxfun(@plus, 0.5 * W{1} * images, b{1});
 
-guessedCategories = feedforwardDiscriminant(thetaMapping, thetaSvm, trainParams, unseenWordTable, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes, mu, sigma, priors);
+priors = calcOutlierPriors( mappedImages, trainX, lambda, knn, nplof, pdist );
+
+% This is the seen label classifier
+probSeen = exp(Ws{1}*images); % k by n matrix with all calcs needed
+probSeen = bsxfun(@rdivide,probSeen,sum(probSeen));
+probSeenFull = zeros(numCategories, numImages);
+probSeenFull(nonZeroCategoryTypes, :) = probSeen;
+
+% This is the unseen label classifier
+probUnseen = exp(Wu{1}*mappedImages); % k by n matrix with all calcs needed
+probUnseen = bsxfun(@rdivide,probUnseen,sum(probUnseen));
+probUnseenFull = zeros(numCategories, numImages);
+probUnseenFull(zeroCategoryTypes, :) = probUnseen;
+
+finalProbs = bsxfun(@times, probSeenFull, 1 - priors) + bsxfun(@times, probUnseenFull, priors);
+[~, guessedCategories ] = max(finalProbs);
 
 % Calculate scores
 confusion = zeros(numCategories, numCategories);
