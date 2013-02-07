@@ -3,7 +3,7 @@ function [ mapped ] = mapDoMap( images, theta, trainParams )
 [ W, b ] = stack2param(theta, trainParams.decodeInfo);
 
 % Feedforward
-if strcmp(str2func(trainParams.costFunction), 'mapTrainingCostOneLayer')
+if strcmp(func2str(trainParams.costFunction), 'mapTrainingCostOneLayer')
     mapped = bsxfun(@plus, W{1} * images, b{1});
 else
     a2All = trainParams.f(bsxfun(@plus, W{1} * images, b{1}));

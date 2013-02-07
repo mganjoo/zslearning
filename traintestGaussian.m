@@ -96,13 +96,13 @@ save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
 disp('Training seen softmax features');
 mappedCategories = zeros(1, numCategories);
 mappedCategories(nonZeroCategories) = 1:numCategories-length(zeroCategories);
-trainParams.nonZeroShotCategories = nonZeroCategories;
-[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X1, mappedCategories(Y1), trainParams);
+trainParamsSeen.nonZeroShotCategories = nonZeroCategories;
+[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X1, mappedCategories(Y1), trainParamsSeen);
 save(sprintf('%s/thetaSeenSoftmax.mat', outputPath), 'thetaSeen', 'trainParamsSeen');
 
 disp('Training unseen softmax features');
-trainParams.zeroShotCategories = nonZeroCategories;
-[thetaUnseen, trainParamsUnseen] = zeroShotTrain(trainParams);
+trainParamsUnseen.zeroShotCategories = nonZeroCategories;
+[thetaUnseen, trainParamsUnseen] = zeroShotTrain(trainParamsUnseen);
 save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainParamsUnseen');
 
 disp('Training Gaussian classifier');
