@@ -55,7 +55,7 @@ trainParams.imageColumnSize = size(X, 1);
 
 % Initialize actual weights
 disp('Initializing parameters');
-nonZeroCategories = trainParams.nonZeroCategories;
+nonZeroCategories = trainParams.nonZeroShotCategories;
 trainParams.inputSize = trainParams.imageColumnSize;
 trainParams.outputSize = length(nonZeroCategories);
 [ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);

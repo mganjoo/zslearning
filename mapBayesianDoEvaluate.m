@@ -9,8 +9,7 @@ numCategories = length(zeroCategoryTypes) + length(nonZeroCategoryTypes);
 Ws = stack2param(thetaSeenSoftmax, seenSmTrainParams.decodeInfo);
 Wu = stack2param(thetaUnseenSoftmax, unseenSmTrainParams.decodeInfo);
 
-[ W, b ] = stack2param(thetaMapping, mapTrainParams.decodeInfo);
-mappedImages = bsxfun(@plus, 0.5 * W{1} * images, b{1});
+mappedImages = mapDoMap(images, thetaMapping, mapTrainParams);
 
 priors = calcOutlierPriors( mappedImages, trainX, trainY, numPerCategory, nonZeroCategoryTypes, lambda, knn, nplofAll, pdistAll );
 

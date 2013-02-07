@@ -90,7 +90,7 @@ Y2 = Y2(order2);
 disp('Training mapping function');
 % Train mapping function
 trainParams.imageDataset = fullParams.dataset;
-[theta, trainParams ] = fastTrain(X, Y, trainParams);
+[theta, trainParams ] = fastTrain(X1, Y1, trainParams, wordTable);
 save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
 
 disp('Training seen softmax features');
@@ -107,8 +107,7 @@ save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainPara
 
 disp('Training Gaussian classifier');
 % Train Gaussian classifier
-[ W, b ] = stack2param(theta, trainParams.decodeInfo);
-mapped = bsxfun(@plus, 0.5 * W{1} * X2, b{1});
+mapped = mapDoMap(X2, theta, trainParams);
 [mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y2, numCategories, wordTable);
 sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, mu, sigma, priors, zeroCategories));
 

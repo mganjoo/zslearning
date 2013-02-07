@@ -1,4 +1,4 @@
-function [theta, trainParams] = fastTrain(X, Y, trainParams)
+function [theta, trainParams] = fastTrain(X, Y, trainParams, wordTable)
 
 addpath toolbox/;
 addpath toolbox/minFunc/;

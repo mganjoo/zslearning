@@ -1,9 +1,7 @@
 function [guessedLabels] = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, unseenWordTable, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes, mu, sigma, priors)
 
-[ W, b ] = stack2param(thetaMapping, trainParams.decodeInfo);
-
 % Forward Propagation
-mappedImages = bsxfun(@plus, 0.5 * W{1} * images, b{1});
+mappedImages = mapDoMap(images, thetaMapping, trainParams);
 
 logprobabilities = predictGaussianDiscriminant(mappedImages, mu, sigma, priors, zeroCategoryTypes);
 unseenIndices = logprobabilities < maxLogprobability;
