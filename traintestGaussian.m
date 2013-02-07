@@ -4,22 +4,44 @@ addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
 addpath costFunctions/;
 
-dataset = 'cifar10';
-wordset = 'acl';
+fields = {{'dataset',        'cifar10'};
+          {'wordset',        'acl'};
+          {'resolution',     10};
+};
+
+% Load existing model parameters, if they exist
+for i = 1:length(fields)
+    if exist('fullParams','var') && isfield(fullParams,fields{i}{1})
+        disp(['Using the previously defined parameter ' fields{i}{1}])
+    else
+        fullParams.(fields{i}{1}) = fields{i}{2};
+    end
+end
+
+dataset = fullParams.dataset;
+wordset = fullParams.wordset;
 trainFrac = 0.8;
 
 if strcmp(dataset, 'cifar10')
     TOTAL_NUM_TRAIN = 50000;
     TOTAL_NUM_PER_CATEGORY = 5000;
     numCategories = 10;
-    % 'cat', 'truck'
-    zeroCategories = [ 4, 10 ];
+    if isfield(fullParams,'zeroCategories')
+        zeroCategories = fullParams.zeroCategories;
+    else
+        % 'cat', 'truck'
+        zeroCategories = [ 4, 10 ];
+    end
 else
     TOTAL_NUM_TRAIN = 48000;
     TOTAL_NUM_PER_CATEGORY = 500;
     numCategories = 96;
-    % 'boy', 'lion', 'orange', 'train', 'couch', 'house' 
-    zeroCategories = [ 12, 42, 52, 87, 26, 36 ];
+    if isfield(fullParams,'zeroCategories')
+        zeroCategories = fullParams.zeroCategories;
+    else
+        % 'boy', 'lion', 'orange', 'train', 'couch', 'house' 
+        zeroCategories = [ 12, 42, 52, 87, 26, 36 ];
+    end
 end
 outputPath = sprintf('gauss_%s_%s', dataset, wordset);
 
@@ -65,18 +87,23 @@ X2 = X2(:, order2);
 Y1 = Y1(order1);
 Y2 = Y2(order2);
 
-% disp('Training mapping function');
-% % Train mapping function
-% fastTrain;
-% save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
-% 
-% disp('Training SVM features');
-% % Train SVM features
-% L = 0.01;
-% mappedCategories = zeros(1, numCategories);
-% mappedCategories(nonZeroCategories) = 1:numCategories-length(zeroCategories);
-% thetaSvm = train_svm(X1', mappedCategories(Y1)', 1/L)';
-% save(sprintf('%s/thetaSvm.mat', outputPath), 'thetaSvm');
+disp('Training mapping function');
+% Train mapping function
+trainParams.imageDataset = fullParams.dataset;
+[theta, trainParams ] = fastTrain(X, Y, trainParams);
+save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
+
+disp('Training seen softmax features');
+mappedCategories = zeros(1, numCategories);
+mappedCategories(nonZeroCategories) = 1:numCategories-length(zeroCategories);
+trainParams.nonZeroShotCategories = nonZeroCategories;
+[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X1, mappedCategories(Y1), trainParams);
+save(sprintf('%s/thetaSeenSoftmax.mat', outputPath), 'thetaSeen', 'trainParamsSeen');
+
+disp('Training unseen softmax features');
+trainParams.zeroShotCategories = nonZeroCategories;
+[thetaUnseen, trainParamsUnseen] = zeroShotTrain(trainParams);
+save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainParamsUnseen');
 
 disp('Training Gaussian classifier');
 % Train Gaussian classifier
@@ -86,15 +113,16 @@ mapped = bsxfun(@plus, 0.5 * W{1} * X2, b{1});
 sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, mu, sigma, priors, zeroCategories));
 
 % Test
-seenAccuracies = numTrain2 / 100;
-unseenAccuracies = numTrain2 / 100;
-
-for i = 1:numTrain2/100
-    cutoff = sortedLogprobabilities((i-1)*100+1);
-
+resolution = fullParams.resolution;
+seenAccuracies = zeros(1, resolution);
+unseenAccuracies = zeros(1, resolution);
+numPerIteration = numTrain2 / resolution;
+for i = 1:resolution
+    cutoff = sortedLogprobabilities((i-1)*numPerIteration+1);
     % Test Gaussian classifier
+    fprintf('With cutoff %f:\n', cutoff);
     results = mapGaussianThresholdDoEvaluate( testX, testY, zeroCategories, label_names, wordTable, ...
-        theta, thetaSvm, trainParams, cutoff, mu, sigma, priors, false);
+        theta, trainParams, thetaSeen, trainParamsSeen, thetaUnseen, trainParamsUnseen, cutoff, mu, sigma, priors, true);
 
     seenAccuracies(i) = results.seenAccuracy;
     unseenAccuracies(i) = results.unseenAccuracy;

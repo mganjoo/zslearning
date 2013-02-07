@@ -1,12 +1,10 @@
 function [ guessedCategoriesDebug, results ] = mapDoEvaluate( images, categories, originalCategoryNames, testCategoryNames, testWordTable, theta, trainParams, doPrint )
 
-[ W, b ] = stack2param(theta, trainParams.decodeInfo);
-
 numImages = size(images, 2);
 numCategories = size(testWordTable, 2);
 
 % Feedforward
-mappedImages = bsxfun(@plus, 0.5 * W{1} * images, b{1});
+mappedImages = mapDoMap(images, theta, trainParams);
 
 dist = slmetric_pw(testWordTable, mappedImages, 'eucdist');
 [ ~, guessedCategories ] = min(dist);

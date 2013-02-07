@@ -2,6 +2,7 @@
 
 trainParams.wordDataset     = 'acl';
 trainParams.imageDataset    = 'cifar10';
+trainParams.costFunction =         @mapTrainingCostOneLayer;
 trainParams.batchFilePrefix = 'mini_batch';
 trainParams.zeroFilePrefix  = 'zeroshot_mini_batch';
 %trainParams.maxPass         = 3;

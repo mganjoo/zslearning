@@ -1,24 +1,30 @@
 function [guessedCategories, results] = anomalyDoEvaluate(thetaSeenSoftmax, ...
-    smTrainParams, priorProbs, unseenWordTable, images, mappedImages, categories, threshold, zeroCategoryTypes, nonZeroCategoryTypes, doPrint)
+    smTrainParams, thetaUnseenSoftmax, unseenSmTrainParams, priorProbs, unseenWordTable, images, mappedImages, categories, threshold, zeroCategoryTypes, nonZeroCategoryTypes, doPrint)
 
 numImages = size(images, 2);
 numCategories = length(zeroCategoryTypes) + length(nonZeroCategoryTypes);
-Ws = stack2param(thetaSeenSoftmax, smTrainParams.decodeInfo);
 
 % Determine seen/unseen based on hard threshold
 unseenIndices = priorProbs >= threshold;
 seenIndices = ~unseenIndices;
 
 % This is the seen label classifier
+Ws = stack2param(thetaSeenSoftmax, smTrainParams.decodeInfo);
 pred = exp(Ws{1}*images(:, seenIndices)); % k by n matrix with all calcs needed
 pred = bsxfun(@rdivide,pred,sum(pred));
 [~, ind] = max(pred);
 guessedCategories(seenIndices) = nonZeroCategoryTypes(ind);
 
 % This is the unseen label classifier
-tDist = slmetric_pw(unseenWordTable, mappedImages(:, unseenIndices), 'eucdist');
-[~, tGuessedCategories ] = min(tDist);
-guessedCategories(unseenIndices) = zeroCategoryTypes(tGuessedCategories);
+Wu = stack2param(thetaUnseenSoftmax, unseenSmTrainParams.decodeInfo);
+pred = exp(Wu{1}*mappedImages(:, unseenIndices)); % k by n matrix with all calcs needed
+pred = bsxfun(@rdivide,pred,sum(pred));
+[~, gind] = max(pred);
+guessedCategories(unseenIndices) = zeroCategoryTypes(gind);
+
+% tDist = slmetric_pw(unseenWordTable, mappedImages(:, unseenIndices), 'eucdist');
+% [~, tGuessedCategories ] = min(tDist);
+% guessedCategories(unseenIndices) = zeroCategoryTypes(tGuessedCategories);
 
 % Calculate scores
 confusion = zeros(numCategories, numCategories);

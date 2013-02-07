@@ -1,4 +1,4 @@
-function [theta, trainParams] = fastTrain(X, Y, trainParams)
+function [theta, trainParams] = nonZeroShotTrain(X, Y, trainParams)
 
 addpath toolbox/;
 addpath toolbox/minFunc/;
@@ -7,16 +7,18 @@ addpath costFunctions/;
 
 %% Model Parameters
 fields = {{'wordDataset',         'acl'};            % type of embedding dataset to use ('turian.200', 'acl')
+          {'imageDataset',        'cifar10'};        % CIFAR dataset type
           {'lambda',              1E-3};   % regularization parameter
           {'numReplicate',        0};     % one-shot replication
           {'dropoutFraction',     1};    % drop-out fraction
-          {'costFunction',        @mapTrainingCostOneLayer}; % training cost function
+          {'costFunction',        @softmaxCost}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'hiddenSize',          100};
           {'maxIter',             400};    % maximum number of minFunc iterations on a batch
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
+          {'nonZeroShotCategories', [1,2,3,5,6,7,8,9]};
           
           % options
           {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
@@ -51,24 +53,17 @@ trainParams.autoencMult = trainParams.autoencMultStart;
 
 trainParams.imageColumnSize = size(X, 1);
 
-if (strcmp(trainParams.imageDataset, 'cifar96'))
-    trainParams.costFunction = @mapTrainingCost;
-else
-    trainParams.costFunction = @mapTrainingCostOneLayer;
-end
-
 % Initialize actual weights
 disp('Initializing parameters');
+nonZeroCategories = trainParams.nonZeroCategories;
 trainParams.inputSize = trainParams.imageColumnSize;
-trainParams.outputSize = size(wordTable, 1);
+trainParams.outputSize = length(nonZeroCategories);
 [ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);
 
 globalStart = tic;
 dataToUse.imgs = X;
 dataToUse.categories = Y;
-dataToUse.wordTable = wordTable;
-data.nonZeroCategories = nonZeroCategories;
-
+dataToUse.nonZeroCategories = nonZeroCategories;
 theta = trainParams.trainFunction(trainParams, dataToUse, theta);
 
 gtime = toc(globalStart);

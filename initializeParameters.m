@@ -1,8 +1,8 @@
 function [ theta, decodeInfo ] = initializeParameters(trainParams)
 
 makeBias = true;
-if strcmp(func2str(trainParams.costFunction), 'mapOneShotTwoLayer') 
-    layers = [trainParams.inputSize trainParams.hiddenSize trainParams.inputSize];
+if strcmp(func2str(trainParams.costFunction), 'mapTrainingCost') 
+    layers = [trainParams.inputSize trainParams.hiddenSize trainParams.outputSize];
 elseif strcmp(func2str(trainParams.costFunction), 'cwTrainingCost')
     layers = [trainParams.embeddingSize + trainParams.imageColumnSize, trainParams.hiddenSize, 1];
 elseif strcmp(func2str(trainParams.costFunction), 'softmaxCost')

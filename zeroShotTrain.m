@@ -1,3 +1,5 @@
+function [theta, trainParams] = zeroShotTrain(trainParams)
+
 addpath toolbox/;
 addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
@@ -7,18 +9,13 @@ addpath costFunctions/;
 fields = {{'wordDataset',         'acl'};            % type of embedding dataset to use ('turian.200', 'acl')
           {'imageDataset',        'cifar10'};        % CIFAR dataset type
           {'lambda',              1E-3};   % regularization parameter
-          {'numReplicate',        0};     % one-shot replication
-          {'dropoutFraction',     1};    % drop-out fraction
           {'costFunction',        @softmaxCost}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'hiddenSize',          100};
-          {'maxIter',             400};    % maximum number of minFunc iterations on a batch
-          {'maxPass',             1};      % maximum number of passes through training data
-          {'disableAutoencoder',  true};   % whether to disable autoencoder
-          {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
-      
+          {'maxIter',             400};    % maximum number of minFunc iterations on a batch      
           {'numRandom',           100};
           {'stddev',              1};
+          {'zeroCategories',      [4, 10]};
           
           % options
           {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
@@ -49,8 +46,9 @@ trainParams.f = @tanh;             % function to use in the neural network activ
 trainParams.f_prime = @tanh_prime; % derivative of f
 
 % Initialize actual weights
-zeroCategories = [4, 10];
-load('word_data/acl/cifar10/wordTable.mat');
+zeroCategories = trainParams.zeroCategories;
+t = load(['word_data/' trainParams.wordDataset '/' trainParams.imageDataset '/wordTable.mat']);
+wordTable = t.wordTable;
 trainParams.inputSize = size(wordTable, 1);
 trainParams.outputSize = length(zeroCategories);
 [ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);
@@ -80,3 +78,5 @@ options.MaxIter = trainParams.maxIter;
 
 gtime = toc(globalStart);
 fprintf('Total time: %f s\n', gtime);
+
+end

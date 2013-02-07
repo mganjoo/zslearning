@@ -10,7 +10,9 @@ knn = 20;
 load('image_data/batches/cifar10/validation_both.mat');
 
 % Load trained mapped images
-load('mappedTrainDataSmall.mat');
+load('mappedTrainData.mat');
+numImages = length(trainY);
+numPerCategory = 3950;
 
 % Load other parameters
 t = load('map-goodParams/params_final.mat');
@@ -33,11 +35,11 @@ unseenWordTable = t.wordTable(:, zeroCategories);
 clear t;
 
 % Train and test anomaly detector
-lambdas = 1:10;
+lambdas = 1:3;
 for lambda = lambdas
     fprintf('Lambda: %d\n', lambda);
-    [ nplof, pdist ] = trainOutlierPriors(trainX, knn, lambda);
+    [ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numPerCategory, knn, lambda);
     [~, results] = mapBayesianDoEvaluate(thetaSeenSoftmax, thetaUnseenSoftmax, ...
-    thetaMapping, seenSmTrainParams, unseenSmTrainParams, mapTrainParams, trainX, X, ...
-    Y, lambda, knn, nplof, pdist, zeroCategories, nonZeroCategories, label_names, true);
+    thetaMapping, seenSmTrainParams, unseenSmTrainParams, mapTrainParams, trainX, trainY, X, ...
+    Y, lambda, knn, nplofAll, pdistAll, numPerCategory, zeroCategories, nonZeroCategories, label_names, true);
 end

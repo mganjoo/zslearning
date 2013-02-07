@@ -9,7 +9,7 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'lambda',              1E-3};   % regularization parameter
           {'numReplicate',        0};     % one-shot replication
           {'dropoutFraction',     1};    % drop-out fraction
-          {'costFunction',        @softmaxCost}; % training cost function
+          {'costFunction',        @mapTrainingCost}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'hiddenSize',          100};
           {'maxIter',             200};    % maximum number of minFunc iterations on a batch
@@ -80,32 +80,14 @@ for i = 1:numBatches
 end
 trainParams.imageColumnSize = size(batches{1}.imgs, 1);
 
-%% Load one-shot training images
-[zeroimgs, zerocategories, zeroCategoryNames] = loadBatch(trainParams.zeroFilePrefix, trainParams.imageDataset, 1);
-dataToUse.zeroimgs = zeroimgs(:, 1);
-dataToUse.zerocategories = zerocategories(:, 1);
-
 %% Load word representations
 disp('Loading word representations');
 t = load(['word_data/' trainParams.wordDataset '/' trainParams.imageDataset '/wordTable.mat']);
-wordTable = zeros(size(t.wordTable, 1), length(categoryNames) + length(zeroCategoryNames));
+wordTable = zeros(size(t.wordTable, 1), length(categoryNames));
 for i = 1:length(categoryNames)
     j = ismember(t.label_names, categoryNames{i}) == true;
     wordTable(:, i) = t.wordTable(:, j);
 end
-origNumCategories = length(categoryNames);
-for i = 1:length(zeroCategoryNames)
-    j = ismember(t.label_names, zeroCategoryNames{i}) == true;
-    wordTable(:, i + length(categoryNames)) = t.wordTable(:, j);
-    zerocategories = zerocategories + length(categoryNames);
-end
-
-% load unseen word table
-if strcmp(dataset, 'cifar10') == true
-    zeroCategories = [ 4, 10 ];
-    unseenWordTable = t.wordTable(:, zeroCategories);
-end
-clear t;
 
 %% Load validation batch
 disp('Loading validation batch');
@@ -175,6 +157,7 @@ if trainParams.enableGradientCheck
     debugParams.autoencMult = 1E-2;
     debugParams.numReplicate = 3;
     debugParams.doEvaluate = false;
+    debugParams.hiddenSize = 10;
     if strcmp(func2str(debugParams.costFunction), 'softmaxCost')
         debugParams.outputSize = size(ddataToUse.wordTable, 2);
     else
@@ -190,7 +173,7 @@ end
 % Initialize actual weights
 disp('Initializing parameters');
 trainParams.inputSize = size(batches{1}.imgs, 1);
-if strcmp(func2str(debugParams.costFunction), 'softmaxCost')
+if strcmp(func2str(trainParams.costFunction), 'softmaxCost')
     trainParams.outputSize = origNumCategories;
 else
     trainParams.outputSize = size(wordTable, 1);
