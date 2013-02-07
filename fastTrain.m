@@ -67,7 +67,6 @@ globalStart = tic;
 dataToUse.imgs = X;
 dataToUse.categories = Y;
 dataToUse.wordTable = wordTable;
-data.nonZeroCategories = nonZeroCategories;
 
 theta = trainParams.trainFunction(trainParams, dataToUse, theta);
 
