@@ -115,6 +115,7 @@ sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, mu, sigma, pri
 resolution = fullParams.resolution;
 seenAccuracies = zeros(1, resolution);
 unseenAccuracies = zeros(1, resolution);
+accuracies = zeros(1, resolution);
 numPerIteration = numTrain2 / resolution;
 for i = 1:resolution
     cutoff = sortedLogprobabilities((i-1)*numPerIteration+1);
@@ -125,8 +126,8 @@ for i = 1:resolution
 
     seenAccuracies(i) = results.seenAccuracy;
     unseenAccuracies(i) = results.unseenAccuracy;
-
+    accuracies(i) = results.accuracy;
 end
 zeroList = label_names(zeroCategories);
 zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
-save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'results', 'seenAccuracies', 'unseenAccuracies');
+save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'seenAccuracies', 'unseenAccuracies', 'accuracies');

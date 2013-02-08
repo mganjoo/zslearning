@@ -3,7 +3,7 @@ function [guessedLabels] = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSee
 % Forward Propagation
 mappedImages = mapDoMap(images, thetaMapping, trainParams);
 
-logprobabilities = predictGaussianDiscriminant(mappedImages, mu, sigma, priors, zeroCategoryTypes);
+logprobabilities = predictGaussianDiscriminantMin(mappedImages, mu, sigma, priors, zeroCategoryTypes);
 unseenIndices = logprobabilities < maxLogprobability;
 seenIndices = ~unseenIndices;
 

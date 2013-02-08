@@ -1,5 +1,5 @@
 function [guessedCategories, results] = anomalyDoEvaluate(thetaSeenSoftmax, ...
-    smTrainParams, thetaUnseenSoftmax, unseenSmTrainParams, priorProbs, unseenWordTable, images, mappedImages, categories, threshold, zeroCategoryTypes, nonZeroCategoryTypes, doPrint)
+    smTrainParams, thetaUnseenSoftmax, unseenSmTrainParams, priorProbs, images, mappedImages, categories, threshold, zeroCategoryTypes, nonZeroCategoryTypes, doPrint)
 
 numImages = size(images, 2);
 numCategories = length(zeroCategoryTypes) + length(nonZeroCategoryTypes);

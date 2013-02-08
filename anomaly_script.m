@@ -52,7 +52,7 @@ clear t;
 % Train and test anomaly detector
 resolution = 20;
 thresholds = 0:(1/resolution):1;
-lambdas = 1:12;
+% lambdas = 1:12;
 % seenAccuracies = zeros(length(lambdas), length(thresholds));
 % unseenAccuracies = zeros(length(lambdas), length(thresholds));
 % accuracies = zeros(length(lambdas), length(thresholds));
@@ -69,7 +69,7 @@ lambdas = 1:12;
 %         for t = 1:length(thresholds)
 %             fprintf('Threshold %f: ', thresholds(t));
 %             [~, results] = anomalyDoEvaluate(thetaSeenSoftmax, ...
-%                 seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, probs, unseenWordTable, X, mappedImages, Y, ...
+%                 seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, probs, X, mappedImages, Y, ...
 %                 thresholds(t), zeroCategories, nonZeroCategories, false);
 %             seenAccuracies(i, t) = results.seenAccuracy;
 %             unseenAccuracies(i, t) = results.unseenAccuracy;
@@ -80,29 +80,29 @@ lambdas = 1:12;
 %     [~, t] = max(sum(accuracies,2));
 %     bestLambdas(k) = t;
 % end
-disp('Best:');
-disp(bestLambdas);
+% disp('Best:');
+% disp(bestLambdas);
 
-% Do it again, with best lambdas
-seenAccuracies = zeros(1, length(thresholds));
-unseenAccuracies = zeros(1, length(thresholds));
-accuracies = zeros(1, length(thresholds));
-[ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numPerCategory, knn, bestLambdas);
-probs = calcOutlierPriors( mappedImages, trainX, trainY, numPerCategory, nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll );
-for t = 1:length(thresholds)
-    fprintf('Threshold %f: ', thresholds(t));
-    [~, results] = anomalyDoEvaluate(thetaSeenSoftmax, ...
-        seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, probs, unseenWordTable, X, mappedImages, Y, ...
-        thresholds(t), zeroCategories, nonZeroCategories, false);
-    seenAccuracies(t) = results.seenAccuracy;
-    unseenAccuracies(t) = results.unseenAccuracy;
-    accuracies(t) = results.accuracy;
-    fprintf('accuracy: %f, seen accuracy: %f, unseen accuracy: %f\n', results.accuracy, results.seenAccuracy, results.unseenAccuracy);
-end
+% % Do it again, with best lambdas
+% seenAccuracies = zeros(1, length(thresholds));
+% unseenAccuracies = zeros(1, length(thresholds));
+% accuracies = zeros(1, length(thresholds));
+% [ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numPerCategory, knn, bestLambdas);
+% probs = calcOutlierPriors( mappedImages, trainX, trainY, numPerCategory, nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll );
+% for t = 1:length(thresholds)
+%     fprintf('Threshold %f: ', thresholds(t));
+%     [~, results] = anomalyDoEvaluate(thetaSeenSoftmax, ...
+%         seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, probs, X, mappedImages, Y, ...
+%         thresholds(t), zeroCategories, nonZeroCategories, false);
+%     seenAccuracies(t) = results.seenAccuracy;
+%     unseenAccuracies(t) = results.unseenAccuracy;
+%     accuracies(t) = results.accuracy;
+%     fprintf('accuracy: %f, seen accuracy: %f, unseen accuracy: %f\n', results.accuracy, results.seenAccuracy, results.unseenAccuracy);
+% end
 
 % Train and test Gaussian anomaly detector
 [mu, sigma, priors] = trainGaussianDiscriminant(trainX, trainY, numCategories, wordTable);
-sortedLogprobabilities = sort(predictGaussianDiscriminant(trainX, mu, sigma, priors, zeroCategories));
+sortedLogprobabilities = sort(predictGaussianDiscriminantMin(trainX, mu, sigma, priors, zeroCategories));
 
 % Test
 numTrain = size(trainX, 2);
@@ -134,7 +134,12 @@ plot(thresholds, accuracies, 'Color', ColorSet(3,:));
 plot(thresholds, oseenAccuracies, '--', 'Color', ColorSet(1,:));
 plot(thresholds, ounseenAccuracies, '--', 'Color', ColorSet(2,:));
 plot(thresholds, oAccuracies, '--', 'Color', ColorSet(3,:));
-legend({ 'new model seen', 'new model unseen', 'new model total', 'old model seen', 'old model unseen', 'old model total' });
+plot(thresholds, oseenAccuraciesNew, ':', 'Color', ColorSet(1,:));
+plot(thresholds, ounseenAccuraciesNew, ':', 'Color', ColorSet(2,:));
+plot(thresholds, oAccuraciesNew, ':', 'Color', ColorSet(3,:));
+legend({ 'loop model seen', 'loop model unseen', 'loop model total',...
+    'gaussian mix model seen', 'gaussian mix model unseen', 'gaussian mix model total',...
+    'gaussian pdf model seen', 'gaussian pdf model unseen', 'gaussian pdf model total'});
 
 % ColorSet = varycolor(11);
 % hold on;
