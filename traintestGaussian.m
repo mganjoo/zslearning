@@ -20,7 +20,7 @@ end
 
 dataset = fullParams.dataset;
 wordset = fullParams.wordset;
-trainFrac = 0.8;
+trainFrac = 1;
 
 if strcmp(dataset, 'cifar10')
     TOTAL_NUM_TRAIN = 50000;
@@ -32,7 +32,7 @@ if strcmp(dataset, 'cifar10')
         % 'cat', 'truck'
         zeroCategories = [ 4, 10 ];
     end
-else
+elseif strcmp(dataset, 'cifar96')
     TOTAL_NUM_TRAIN = 48000;
     TOTAL_NUM_PER_CATEGORY = 500;
     numCategories = 96;
@@ -41,6 +41,16 @@ else
     else
         % 'boy', 'lion', 'orange', 'train', 'couch', 'house' 
         zeroCategories = [ 12, 42, 52, 87, 26, 36 ];
+    end
+else
+    TOTAL_NUM_TRAIN = 53000;
+    TOTAL_NUM_PER_CATEGORY = 500;
+    numCategories = 106;
+    if isfield(fullParams,'zeroCategories')
+        zeroCategories = fullParams.zeroCategories;
+    else
+        % 'cat', 'truck', 'boy', 'lion', 'orange', 'train'
+        zeroCategories = [ 100, 106, 12, 42, 52, 87 ];
     end
 end
 outputPath = sprintf('gauss_%s_%s', dataset, wordset);
@@ -107,8 +117,8 @@ save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainPara
 
 disp('Training Gaussian classifier');
 % Train Gaussian classifier
-mapped = mapDoMap(X2, theta, trainParams);
-[mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y2, numCategories, wordTable);
+mapped = mapDoMap(X1, theta, trainParams);
+[mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y1, numCategories, wordTable);
 sortedLogprobabilities = sort(predictGaussianDiscriminantMin(mapped, mu, sigma, priors, zeroCategories));
 
 % Test
