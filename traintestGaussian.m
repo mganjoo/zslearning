@@ -49,8 +49,8 @@ else
     if isfield(fullParams,'zeroCategories')
         zeroCategories = fullParams.zeroCategories;
     else
-        % 'cat', 'truck', 'boy', 'lion', 'orange', 'train'
-        zeroCategories = [ 100, 106, 12, 42, 52, 87 ];
+        % 'forest', 'lobster', 'boy', 'truck', 'orange', 'cat'
+        zeroCategories = [ 33, 44, 12, 106, 52, 100 ];
     end
 end
 outputPath = sprintf('gauss_%s_%s', dataset, wordset);

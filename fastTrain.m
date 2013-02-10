@@ -13,7 +13,7 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'costFunction',        @mapTrainingCostOneLayer}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'hiddenSize',          100};
-          {'maxIter',             400};    % maximum number of minFunc iterations on a batch
+          {'maxIter',             500};    % maximum number of minFunc iterations on a batch
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
