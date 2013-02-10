@@ -83,22 +83,22 @@ thresholds = 0:(1/resolution):1;
 % disp('Best:');
 % disp(bestLambdas);
 
-% % Do it again, with best lambdas
-% seenAccuracies = zeros(1, length(thresholds));
-% unseenAccuracies = zeros(1, length(thresholds));
-% accuracies = zeros(1, length(thresholds));
-% [ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numPerCategory, knn, bestLambdas);
-% probs = calcOutlierPriors( mappedImages, trainX, trainY, numPerCategory, nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll );
-% for t = 1:length(thresholds)
-%     fprintf('Threshold %f: ', thresholds(t));
-%     [~, results] = anomalyDoEvaluate(thetaSeenSoftmax, ...
-%         seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, probs, X, mappedImages, Y, ...
-%         thresholds(t), zeroCategories, nonZeroCategories, false);
-%     seenAccuracies(t) = results.seenAccuracy;
-%     unseenAccuracies(t) = results.unseenAccuracy;
-%     accuracies(t) = results.accuracy;
-%     fprintf('accuracy: %f, seen accuracy: %f, unseen accuracy: %f\n', results.accuracy, results.seenAccuracy, results.unseenAccuracy);
-% end
+% Do it again, with best lambdas
+seenAccuracies = zeros(1, length(thresholds));
+unseenAccuracies = zeros(1, length(thresholds));
+accuracies = zeros(1, length(thresholds));
+[ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numPerCategory, knn, bestLambdas);
+probs = calcOutlierPriors( mappedImages, trainX, trainY, numPerCategory, nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll );
+for t = 1:length(thresholds)
+    fprintf('Threshold %f: ', thresholds(t));
+    [~, results] = anomalyDoEvaluate(thetaSeenSoftmax, ...
+        seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, probs, X, mappedImages, Y, ...
+        thresholds(t), zeroCategories, nonZeroCategories, false);
+    seenAccuracies(t) = results.seenAccuracy;
+    unseenAccuracies(t) = results.unseenAccuracy;
+    accuracies(t) = results.accuracy;
+    fprintf('accuracy: %f, seen accuracy: %f, unseen accuracy: %f\n', results.accuracy, results.seenAccuracy, results.unseenAccuracy);
+end
 
 % Train and test Gaussian anomaly detector
 [mu, sigma, priors] = trainGaussianDiscriminant(trainX, trainY, numCategories, wordTable);
@@ -111,12 +111,14 @@ oseenAccuracies = zeros(1, resolution);
 ounseenAccuracies = zeros(1, resolution);
 oAccuracies = zeros(1, resolution);
 divFactor = floor(numTrain / resolution);
+mappedTestImages = mapDoMap(X, thetaMapping, trainParams);
+logprobabilities = predictGaussianDiscriminant(mappedTestImages, mu, sigma, priors, zeroCategories);
 for i = 1:resolution
     cutoff = sortedLogprobabilities((i-1)*divFactor+1);
     fprintf('Cutoff %f: ', cutoff);
     % Test Gaussian classifier
     results = mapGaussianThresholdDoEvaluate( X, Y, zeroCategories, label_names, wordTable, ...
-        thetaMapping, trainParams, thetaSeenSoftmax, seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, cutoff, mu, sigma, priors, false);
+        thetaMapping, trainParams, thetaSeenSoftmax, seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, logprobabilities, cutoff, mu, sigma, priors, false);
     oseenAccuracies(i) = results.seenAccuracy;
     ounseenAccuracies(i) = results.unseenAccuracy;
     oAccuracies(i) = results.accuracy;
@@ -125,6 +127,34 @@ end
 oseenAccuracies = fliplr(oseenAccuracies);
 ounseenAccuracies = fliplr(ounseenAccuracies);
 oAccuracies = fliplr(oAccuracies);
+
+% NEW MODEL
+% Train and test Gaussian anomaly detector
+[mu, sigma, priors] = trainGaussianDiscriminant(trainX, trainY, numCategories, wordTable);
+sortedLogprobabilities = sort(predictGaussianDiscriminantMin(trainX, mu, sigma, priors, zeroCategories));
+
+% Test
+numTrain = size(trainX, 2);
+oseenAccuraciesNew = zeros(1, resolution);
+ounseenAccuraciesNew = zeros(1, resolution);
+oAccuraciesNew = zeros(1, resolution);
+divFactor = floor(numTrain / resolution);
+mappedTestImages = mapDoMap(X, thetaMapping, trainParams);
+logprobabilities = predictGaussianDiscriminantMin(mappedTestImages, mu, sigma, priors, zeroCategories);
+for i = 1:resolution
+    cutoff = sortedLogprobabilities((i-1)*divFactor+1);
+    fprintf('Cutoff %f: ', cutoff);
+    % Test Gaussian classifier
+    results = mapGaussianThresholdDoEvaluate( X, Y, zeroCategories, label_names, wordTable, ...
+        thetaMapping, trainParams, thetaSeenSoftmax, seenTrainParams, thetaUnseenSoftmax, unseenTrainParams, logprobabilities, cutoff, mu, sigma, priors, false);
+    oseenAccuraciesNew(i) = results.seenAccuracy;
+    ounseenAccuraciesNew(i) = results.unseenAccuracy;
+    oAccuraciesNew(i) = results.accuracy;
+    fprintf('accuracy: %f, seen accuracy: %f, unseen accuracy: %f\n', results.accuracy, results.seenAccuracy, results.unseenAccuracy);
+end
+oseenAccuraciesNew = fliplr(oseenAccuraciesNew);
+ounseenAccuraciesNew = fliplr(ounseenAccuraciesNew);
+oAccuraciesNew = fliplr(oAccuraciesNew);
 
 hold on;
 ColorSet = varycolor(3);

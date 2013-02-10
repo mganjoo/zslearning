@@ -109,7 +109,7 @@ disp('Training Gaussian classifier');
 % Train Gaussian classifier
 mapped = mapDoMap(X2, theta, trainParams);
 [mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y2, numCategories, wordTable);
-sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, mu, sigma, priors, zeroCategories));
+sortedLogprobabilities = sort(predictGaussianDiscriminantMin(mapped, mu, sigma, priors, zeroCategories));
 
 % Test
 resolution = fullParams.resolution;

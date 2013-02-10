@@ -1,5 +1,7 @@
 function [ mapped ] = mapDoMap( images, theta, trainParams )
 
+addpath toolbox/;
+
 [ W, b ] = stack2param(theta, trainParams.decodeInfo);
 
 % Feedforward

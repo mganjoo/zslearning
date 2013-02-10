@@ -1,9 +1,8 @@
-function [guessedLabels] = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, unseenWordTable, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes, mu, sigma, priors)
+function [guessedLabels] = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, logprobabilities, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes, mu, sigma, priors)
 
 % Forward Propagation
 mappedImages = mapDoMap(images, thetaMapping, trainParams);
 
-logprobabilities = predictGaussianDiscriminantMin(mappedImages, mu, sigma, priors, zeroCategoryTypes);
 unseenIndices = logprobabilities < maxLogprobability;
 seenIndices = ~unseenIndices;
 
