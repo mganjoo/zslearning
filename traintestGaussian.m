@@ -57,8 +57,8 @@ outputPath = sprintf('gauss_%s_%s', dataset, wordset);
 
 if not(exist('skipLoad','var')) || skipLoad == false
     disp('Loading data');
-%     load(['image_data/features/' dataset '/train.mat']);
-%     load(['image_data/features/' dataset '/test.mat']);
+    load(['image_data/features/' dataset '/train.mat']);
+    load(['image_data/features/' dataset '/test.mat']);
     load(['word_data/' wordset '/' dataset '/wordTable.mat']);
 end
     
