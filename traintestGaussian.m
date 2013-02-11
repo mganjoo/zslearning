@@ -6,7 +6,7 @@ addpath costFunctions/;
 
 fields = {{'dataset',        'cifar10'};
           {'wordset',        'acl'};
-          {'resolution',     10};
+          {'resolution',     11};
 };
 
 % Load existing model parameters, if they exist
@@ -98,7 +98,7 @@ trainParamsSeen.nonZeroShotCategories = nonZeroCategories;
 save(sprintf('%s/thetaSeenSoftmax.mat', outputPath), 'thetaSeen', 'trainParamsSeen');
 
 disp('Training unseen softmax features');
-trainParamsUnseen.zeroShotCategories = nonZeroCategories;
+trainParamsUnseen.zeroShotCategories = zeroCategories;
 [thetaUnseen, trainParamsUnseen] = zeroShotTrain(trainParamsUnseen);
 save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainParamsUnseen');
 
@@ -113,11 +113,12 @@ resolution = fullParams.resolution;
 seenAccuracies = zeros(1, resolution);
 unseenAccuracies = zeros(1, resolution);
 accuracies = zeros(1, resolution);
-numPerIteration = numTrain / resolution;
+numPerIteration = numTrain / (resolution-1);
 mappedTestImages = mapDoMap(testX, theta, trainParams);
 logprobabilities = predictGaussianDiscriminantMin(mappedTestImages, mu, sigma, priors, zeroCategories);
+cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
 for i = 1:resolution
-    cutoff = sortedLogprobabilities((i-1)*numPerIteration+1);
+    cutoff = cutoffs(i);
     % Test Gaussian classifier
     fprintf('With cutoff %f:\n', cutoff);
     results = mapGaussianThresholdDoEvaluate( testX, testY, zeroCategories, label_names, wordTable, ...

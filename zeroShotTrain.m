@@ -15,7 +15,6 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'maxIter',             400};    % maximum number of minFunc iterations on a batch      
           {'numRandom',           100};
           {'stddev',              1};
-          {'zeroCategories',      [4, 10]};
           
           % options
           {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
@@ -46,7 +45,7 @@ trainParams.f = @tanh;             % function to use in the neural network activ
 trainParams.f_prime = @tanh_prime; % derivative of f
 
 % Initialize actual weights
-zeroCategories = trainParams.zeroCategories;
+zeroCategories = trainParams.zeroShotCategories;
 t = load(['word_data/' trainParams.wordDataset '/' trainParams.imageDataset '/wordTable.mat']);
 wordTable = t.wordTable;
 trainParams.inputSize = size(wordTable, 1);
