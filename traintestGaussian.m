@@ -57,8 +57,8 @@ outputPath = sprintf('gauss_%s_%s', dataset, wordset);
 
 if not(exist('skipLoad','var')) || skipLoad == false
     disp('Loading data');
-    load(['image_data/features/' dataset '/train.mat']);
-    load(['image_data/features/' dataset '/test.mat']);
+%     load(['image_data/features/' dataset '/train.mat']);
+%     load(['image_data/features/' dataset '/test.mat']);
     load(['word_data/' wordset '/' dataset '/wordTable.mat']);
 end
     
@@ -71,43 +71,30 @@ disp(zeroCategories);
 nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 
 numTrain = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
-numTrain1 = round(trainFrac * numTrain);
-numTrain2 = numTrain - numTrain1;
-numTrainPerCat1 = numTrain1 / length(nonZeroCategories);
-numTrainPerCat2 = numTrain2 / length(nonZeroCategories);
-
-% divide into two training sets (for mapping function and threshold) 
-X1 = zeros(size(trainX, 1), numTrain1);
-X2 = zeros(size(trainX, 1), numTrain2);
-Y1 = zeros(1, numTrain1);
-Y2 = zeros(1, numTrain2);
+numTrainPerCat = numTrain / length(nonZeroCategories);
+t = zeros(1, numTrain);
 for i = 1:length(nonZeroCategories)
-    [ ~, t ] = find(trainY == nonZeroCategories(i));
-    X1(:, (i-1)*numTrainPerCat1+1:i*numTrainPerCat1) = trainX(:, t(1:numTrainPerCat1));
-    X2(:, (i-1)*numTrainPerCat2+1:i*numTrainPerCat2) = trainX(:, t(numTrainPerCat1+1:end));
-    Y1((i-1)*numTrainPerCat1+1:i*numTrainPerCat1) = trainY(t(1:numTrainPerCat1));
-    Y2((i-1)*numTrainPerCat2+1:i*numTrainPerCat2) = trainY(t(numTrainPerCat1+1:end));
+    [ ~, t((i-1)*numTrainPerCat+1:i*numTrainPerCat) ] = find(trainY == nonZeroCategories(i));
 end
 
 % permute
-order1 = randperm(numTrain1);
-order2 = randperm(numTrain2);
-X1 = X1(:, order1);
-X2 = X2(:, order2);
-Y1 = Y1(order1);
-Y2 = Y2(order2);
+order = randperm(numTrain);
+t = t(order);
+X = trainX(:, t);
+Y = trainY(:, t);
+save(sprintf('%s/perm.mat', outputPath), 't');
 
 disp('Training mapping function');
 % Train mapping function
 trainParams.imageDataset = fullParams.dataset;
-[theta, trainParams ] = fastTrain(X1, Y1, trainParams, wordTable);
+[theta, trainParams ] = fastTrain(X, Y, trainParams, wordTable);
 save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
 
 disp('Training seen softmax features');
 mappedCategories = zeros(1, numCategories);
 mappedCategories(nonZeroCategories) = 1:numCategories-length(zeroCategories);
 trainParamsSeen.nonZeroShotCategories = nonZeroCategories;
-[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X1, mappedCategories(Y1), trainParamsSeen);
+[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X, mappedCategories(Y), trainParamsSeen);
 save(sprintf('%s/thetaSeenSoftmax.mat', outputPath), 'thetaSeen', 'trainParamsSeen');
 
 disp('Training unseen softmax features');
@@ -117,8 +104,8 @@ save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainPara
 
 disp('Training Gaussian classifier');
 % Train Gaussian classifier
-mapped = mapDoMap(X1, theta, trainParams);
-[mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y1, numCategories, wordTable);
+mapped = mapDoMap(X, theta, trainParams);
+[mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y, numCategories, wordTable);
 sortedLogprobabilities = sort(predictGaussianDiscriminantMin(mapped, mu, sigma, priors, zeroCategories));
 
 % Test
@@ -126,13 +113,15 @@ resolution = fullParams.resolution;
 seenAccuracies = zeros(1, resolution);
 unseenAccuracies = zeros(1, resolution);
 accuracies = zeros(1, resolution);
-numPerIteration = numTrain2 / resolution;
+numPerIteration = numTrain / resolution;
+mappedTestImages = mapDoMap(testX, theta, trainParams);
+logprobabilities = predictGaussianDiscriminantMin(mappedTestImages, mu, sigma, priors, zeroCategories);
 for i = 1:resolution
     cutoff = sortedLogprobabilities((i-1)*numPerIteration+1);
     % Test Gaussian classifier
     fprintf('With cutoff %f:\n', cutoff);
     results = mapGaussianThresholdDoEvaluate( testX, testY, zeroCategories, label_names, wordTable, ...
-        theta, trainParams, thetaSeen, trainParamsSeen, thetaUnseen, trainParamsUnseen, cutoff, mu, sigma, priors, true);
+        theta, trainParams, thetaSeen, trainParamsSeen, thetaUnseen, trainParamsUnseen, logprobabilities, cutoff, true);
 
     seenAccuracies(i) = results.seenAccuracy;
     unseenAccuracies(i) = results.unseenAccuracy;

@@ -1,14 +1,13 @@
-function [ results ] = mapGaussianThresholdDoEvaluate ( images, categories, zeroCategoryTypes, categoryNames, wordTable, thetaMapping, trainParams, thetaSoftmaxSeen, trainParamsSeen, thetaSoftmaxUnseen, trainParamsUnseen, logprobabilities, maxLogprobability, mu, sigma, priors, doPrint )
+function [ results ] = mapGaussianThresholdDoEvaluate ( images, categories, zeroCategoryTypes, categoryNames, wordTable, thetaMapping, trainParams, thetaSoftmaxSeen, trainParamsSeen, thetaSoftmaxUnseen, trainParamsUnseen, logprobabilities, maxLogprobability, doPrint )
 
 addpath toolbox/pwmetric;
 
 numImages = size(images, 2);
 numCategories = size(wordTable, 2);
 
-keep = arrayfun(@(x) ~ismember(x, zeroCategoryTypes), 1:length(categoryNames));
 nonzeroCategoryTypes = setdiff(1:length(categoryNames), zeroCategoryTypes);
 
-guessedCategories = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, logprobabilities, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes, mu, sigma, priors);
+guessedCategories = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, logprobabilities, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes);
 
 % Calculate scores
 confusion = zeros(numCategories, numCategories);

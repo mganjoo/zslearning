@@ -1,4 +1,4 @@
-function [guessedLabels] = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, logprobabilities, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes, mu, sigma, priors)
+function [guessedLabels] = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, logprobabilities, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes)
 
 % Forward Propagation
 mappedImages = mapDoMap(images, thetaMapping, trainParams);
