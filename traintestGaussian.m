@@ -70,15 +70,19 @@ disp('Zero categories:');
 disp(zeroCategories);
 nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 
-numTrain = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
-numTrainPerCat = 0.95 * numTrain / length(nonZeroCategories);
+numTrainNonZeroShot = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
+numTrainPerCat = 0.95 * numTrainNonZeroShot / length(nonZeroCategories);
 numValidatePerCat = numTrainPerCat * 0.05 / 0.95;
-t = zeros(1, numTrain);
-v = zeros(1, numValidate);
+t = zeros(1, numTrainPerCat * numCategories);
+v = zeros(1, numValidatePerCat * numCategories);
 for i = 1:length(nonZeroCategories)
     [ ~, temp ] = find(trainY == nonZeroCategories(i));
     t((i-1)*numTrainPerCat+1:i*numTrainPerCat) = temp(1:numTrainPerCat);
-    v((i-1)*numValidatePerCat+1:i*numValicatePerCat) = temp(numTrainPerCat+1:end);
+    v((i-1)*numValidatePerCat+1:i*numValidatePerCat) = temp(numTrainPerCat+1:end);
+end
+for i = 1:length(zeroCategories)
+    [ ~, temp ] = find(trainY == zeroCategories(i));
+    v((i-1)*numValidatePerCat+1:i*numValidatePerCat) = temp(1:numValidatePerCat);
 end
 
 % permute
