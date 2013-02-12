@@ -71,18 +71,26 @@ disp(zeroCategories);
 nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 
 numTrain = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
-numTrainPerCat = numTrain / length(nonZeroCategories);
+numTrainPerCat = 0.95 * numTrain / length(nonZeroCategories);
+numValidatePerCat = numTrainPerCat * 0.05 / 0.95;
 t = zeros(1, numTrain);
+v = zeros(1, numValidate);
 for i = 1:length(nonZeroCategories)
-    [ ~, t((i-1)*numTrainPerCat+1:i*numTrainPerCat) ] = find(trainY == nonZeroCategories(i));
+    [ ~, temp ] = find(trainY == nonZeroCategories(i));
+    t((i-1)*numTrainPerCat+1:i*numTrainPerCat) = temp(1:numTrainPerCat);
+    v((i-1)*numValidatePerCat+1:i*numValicatePerCat) = temp(numTrainPerCat+1:end);
 end
 
 % permute
-order = randperm(numTrain);
+order = randperm(numTrainPerCat * numCategories);
 t = t(order);
+order = randperm(numValidatePerCat * numCategories);
+v = v(order);
 X = trainX(:, t);
-Y = trainY(:, t);
-save(sprintf('%s/perm.mat', outputPath), 't');
+Y = trainY(t);
+Xvalidate = trainX(:, v);
+Yvalidate = trainY(v);
+save(sprintf('%s/perm.mat', outputPath), 't', 'v');
 
 disp('Training mapping function');
 % Train mapping function
@@ -99,22 +107,55 @@ save(sprintf('%s/thetaSeenSoftmax.mat', outputPath), 'thetaSeen', 'trainParamsSe
 
 disp('Training unseen softmax features');
 trainParamsUnseen.zeroShotCategories = zeroCategories;
+trainParamsUnseen.imageDataset = fullParams.dataset;
 [thetaUnseen, trainParamsUnseen] = zeroShotTrain(trainParamsUnseen);
 save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainParamsUnseen');
 
-disp('Training Gaussian classifier');
+disp('Training Gaussian classifier using Mixture of Gaussians');
+% Train Gaussian classifier
+mapped = mapDoMap(X, theta, trainParams);
+[mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y, numCategories, wordTable);
+sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, mu, sigma, priors, zeroCategories));
+
+% Test
+mappedTestImages = mapDoMap(testX, theta, trainParams);
+
+resolution = fullParams.resolution;
+gseenAccuracies = zeros(1, resolution);
+gunseenAccuracies = zeros(1, resolution);
+gaccuracies = zeros(1, resolution);
+numPerIteration = numTrain / (resolution-1);
+logprobabilities = predictGaussianDiscriminant(mappedTestImages, mu, sigma, priors, zeroCategories);
+cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
+for i = 1:resolution
+    cutoff = cutoffs(i);
+    % Test Gaussian classifier
+    fprintf('With cutoff %f:\n', cutoff);
+    results = mapGaussianThresholdDoEvaluate( testX, testY, zeroCategories, label_names, wordTable, ...
+        theta, trainParams, thetaSeen, trainParamsSeen, thetaUnseen, trainParamsUnseen, logprobabilities, cutoff, true);
+
+    gseenAccuracies(i) = results.seenAccuracy;
+    gunseenAccuracies(i) = results.unseenAccuracy;
+    gaccuracies(i) = results.accuracy;
+end
+gseenAccuracies = fliplr(gseenAccuracies);
+gunseenAccuracies = fliplr(gunseenAccuracies);
+gAccuracies = fliplr(gAccuracies);
+
+disp('Training Gaussian classifier using PDF');
 % Train Gaussian classifier
 mapped = mapDoMap(X, theta, trainParams);
 [mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y, numCategories, wordTable);
 sortedLogprobabilities = sort(predictGaussianDiscriminantMin(mapped, mu, sigma, priors, zeroCategories));
 
 % Test
-resolution = fullParams.resolution;
-seenAccuracies = zeros(1, resolution);
-unseenAccuracies = zeros(1, resolution);
-accuracies = zeros(1, resolution);
-numPerIteration = numTrain / (resolution-1);
 mappedTestImages = mapDoMap(testX, theta, trainParams);
+
+resolution = fullParams.resolution;
+pdfSeenAccuracies = zeros(1, resolution);
+pdfUnseenAccuracies = zeros(1, resolution);
+pdfAccuracies = zeros(1, resolution);
+numPerIteration = numTrain / (resolution-1);
 logprobabilities = predictGaussianDiscriminantMin(mappedTestImages, mu, sigma, priors, zeroCategories);
 cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
 for i = 1:resolution
@@ -124,10 +165,70 @@ for i = 1:resolution
     results = mapGaussianThresholdDoEvaluate( testX, testY, zeroCategories, label_names, wordTable, ...
         theta, trainParams, thetaSeen, trainParamsSeen, thetaUnseen, trainParamsUnseen, logprobabilities, cutoff, true);
 
-    seenAccuracies(i) = results.seenAccuracy;
-    unseenAccuracies(i) = results.unseenAccuracy;
-    accuracies(i) = results.accuracy;
+    pdfSeenAccuracies(i) = results.seenAccuracy;
+    pdfUnseenAccuracies(i) = results.unseenAccuracy;
+    pdfAccuracies(i) = results.accuracy;
 end
+pdfSeenAccuracies = fliplr(pdfSeenAccuracies);
+pdfUnseenAccuracies = fliplr(pdfUnseenAccuracies);
+pdfAccuracies = fliplr(pdfAccuracies);
+
+disp('Training LoOP model');
+resolution = fullParams.resolution - 1;
+thresholds = 0:(1/resolution):1;
+lambdas = 1:13;
+knn = 20;
+loopSeenAccuracies = zeros(length(lambdas), length(thresholds));
+loopUnseenAccuracies = zeros(length(lambdas), length(thresholds));
+loopAccuracies = zeros(length(lambdas), length(thresholds));
+nonZeroCategoryIdPerm = randperm(length(nonZeroCategories));
+bestLambdas = repmat(lambdas(length(lambdas)/2), 1, length(nonZeroCategories));
+mappedValidationImages = mapDoMap(Xvalidate, theta, trainParams);
+
+for k = 1:length(nonZeroCategories)
+    changedCategory = nonZeroCategoryIdPerm(k);
+    for i = 1:length(lambdas)
+        tempLambdas = bestLambdas;
+        tempLambdas(changedCategory) = lambdas(i);
+        disp(tempLambdas);
+        [ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numTrainPerCat, knn, tempLambdas);
+        probs = calcOutlierPriors( mappedValidationImages, trainX, trainY, numTrainPerCat, nonZeroCategories, tempLambdas, knn, nplofAll, pdistAll );
+        for t = 1:length(thresholds)
+            fprintf('Threshold %f: ', thresholds(t));
+            [~, results] = anomalyDoEvaluate(thetaSeen, ...
+                trainParamsSeen, thetaUnseen, trainParamsUnseen, probs, Xvalidate, mappedValidationImages, Yvalidate, ...
+                thresholds(t), zeroCategories, nonZeroCategories, false);
+            loopSeenAccuracies(i, t) = results.seenAccuracy;
+            loopUnseenAccuracies(i, t) = results.unseenAccuracy;
+            loopAccuracies(i, t) = results.accuracy;
+            fprintf('seen accuracy: %f, unseen accuracy: %f\n', results.seenAccuracy, results.unseenAccuracy);
+        end
+    end
+    [~, t] = max(sum(loopAccuracies,2));
+    bestLambdas(k) = t;
+end
+disp('Best:');
+disp(bestLambdas);
+% Do it again, with best lambdas
+loopSeenAccuracies = zeros(1, length(thresholds));
+loopUnseenAccuracies = zeros(1, length(thresholds));
+loopAccuracies = zeros(1, length(thresholds));
+[ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numTrainPerCat, knn, bestLambdas);
+probs = calcOutlierPriors( mappedTestImages, trainX, trainY, numTrainPerCat, nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll );
+for t = 1:length(thresholds)
+    fprintf('Threshold %f: ', thresholds(t));
+            [~, results] = anomalyDoEvaluate(thetaSeen, ...
+                trainParamsSeen, thetaUnseen, trainParamsUnseen, probs, testX, mappedTestImages, testY, ...
+                thresholds(t), zeroCategories, nonZeroCategories, false);
+    loopSeenAccuracies(t) = results.seenAccuracy;
+    loopUnseenAccuracies(t) = results.unseenAccuracy;
+    loopAccuracies(t) = results.accuracy;
+    fprintf('accuracy: %f, seen accuracy: %f, unseen accuracy: %f\n', results.accuracy, results.seenAccuracy, results.unseenAccuracy);
+end
+
+
 zeroList = label_names(zeroCategories);
 zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
-save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'seenAccuracies', 'unseenAccuracies', 'accuracies');
+save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'gSeenAccuracies', 'gUnseenAccuracies', 'gAccuracies', ...
+    'loopSeenAccuracies', 'loopUnseenAccuracies', 'loopAccuracies', 'pdfSeenAccuracies', 'pdfUnseenAccuracies', ...
+    'pdfAccuracies');

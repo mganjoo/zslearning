@@ -51,10 +51,10 @@ trainParams.autoencMult = trainParams.autoencMultStart;
 
 trainParams.imageColumnSize = size(X, 1);
 
-if (strcmp(trainParams.imageDataset, 'cifar96'))
-    trainParams.costFunction = @mapTrainingCost;
-else
+if (strcmp(trainParams.imageDataset, 'cifar10'))
     trainParams.costFunction = @mapTrainingCostOneLayer;
+else
+    trainParams.costFunction = @mapTrainingCost;
 end
 
 % Initialize actual weights
