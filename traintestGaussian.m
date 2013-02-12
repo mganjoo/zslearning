@@ -210,7 +210,7 @@ for k = 1:length(nonZeroCategories)
         end
     end
     [~, t] = max(sum(loopAccuracies,2));
-    bestLambdas(k) = t;
+    bestLambdas(changedCategory) = t;
 end
 disp('Best:');
 disp(bestLambdas);
