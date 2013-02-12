@@ -225,10 +225,15 @@ for t = 1:length(thresholds)
     loopAccuracies(t) = results.accuracy;
     fprintf('accuracy: %f, seen accuracy: %f, unseen accuracy: %f\n', results.accuracy, results.seenAccuracy, results.unseenAccuracy);
 end
+save(sprintf('%s/bestLambdas.mat', outputPath), 'bestLambdas');
 
+disp('Run Bayesian pipeline');
+[~, bayesianResult] = mapBayesianDoEvaluate(thetaSeen, thetaUnseen, ...
+    theta, trainParamsSeen, trainParamsUnseen, trainParams, trainX, trainY, testX, ...
+    testY, bestLambdas, knn, nplofAll, pdistAll, numTrainPerCat, zeroCategories, nonZeroCategories, label_names, true);
 
 zeroList = label_names(zeroCategories);
 zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
 save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'gSeenAccuracies', 'gUnseenAccuracies', 'gAccuracies', ...
     'loopSeenAccuracies', 'loopUnseenAccuracies', 'loopAccuracies', 'pdfSeenAccuracies', 'pdfUnseenAccuracies', ...
-    'pdfAccuracies');
+    'pdfAccuracies', 'bayesianResult');

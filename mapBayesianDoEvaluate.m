@@ -1,6 +1,6 @@
 function [ guessedCategories, results ] = mapBayesianDoEvaluate(thetaSeenSoftmax, thetaUnseenSoftmax, ...
     thetaMapping, seenSmTrainParams, unseenSmTrainParams, mapTrainParams, trainX, trainY, images, ...
-    categories, lambda, knn, nplofAll, pdistAll, numPerCategory, zeroCategoryTypes, nonZeroCategoryTypes, categoryNames, doPrint)
+    categories, lambdas, knn, nplofAll, pdistAll, numPerCategory, zeroCategoryTypes, nonZeroCategoryTypes, categoryNames, doPrint)
 
 addpath toolbox;
 
@@ -11,7 +11,7 @@ Wu = stack2param(thetaUnseenSoftmax, unseenSmTrainParams.decodeInfo);
 
 mappedImages = mapDoMap(images, thetaMapping, mapTrainParams);
 
-priors = calcOutlierPriors( mappedImages, trainX, trainY, numPerCategory, nonZeroCategoryTypes, lambda, knn, nplofAll, pdistAll );
+priors = calcOutlierPriors( mappedImages, trainX, trainY, numPerCategory, nonZeroCategoryTypes, lambdas, knn, nplofAll, pdistAll );
 
 % This is the seen label classifier
 probSeen = exp(Ws{1}*images); % k by n matrix with all calcs needed
