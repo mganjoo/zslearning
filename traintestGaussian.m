@@ -53,7 +53,6 @@ else
         zeroCategories = [ 33, 44, 12, 106, 52, 100 ];
     end
 end
-outputPath = sprintf('gauss_%s_%s', dataset, wordset);
 
 if not(exist('skipLoad','var')) || skipLoad == false
     disp('Loading data');
@@ -61,7 +60,11 @@ if not(exist('skipLoad','var')) || skipLoad == false
     load(['image_data/features/' dataset '/test.mat']);
     load(['word_data/' wordset '/' dataset '/wordTable.mat']);
 end
-    
+
+zeroList = label_names(zeroCategories);
+zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
+outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset);
+
 if not(exist(outputPath, 'dir'))
     mkdir(outputPath);
 end
@@ -237,8 +240,6 @@ disp('Run Bayesian pipeline');
     theta, trainParamsSeen, trainParamsUnseen, trainParams, mapped, Y, testX, ...
     testY, bestLambdas, knn, nplofAll, pdistAll, numTrainPerCat, zeroCategories, nonZeroCategories, label_names, true);
 
-zeroList = label_names(zeroCategories);
-zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
 save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'gSeenAccuracies', 'gUnseenAccuracies', 'gAccuracies', ...
     'loopSeenAccuracies', 'loopUnseenAccuracies', 'loopAccuracies', 'pdfSeenAccuracies', 'pdfUnseenAccuracies', ...
     'pdfAccuracies', 'bayesianResult');
