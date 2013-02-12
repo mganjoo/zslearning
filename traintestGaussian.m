@@ -73,7 +73,7 @@ nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 numTrainNonZeroShot = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
 numTrainPerCat = 0.95 * numTrainNonZeroShot / length(nonZeroCategories);
 numValidatePerCat = numTrainPerCat * 0.05 / 0.95;
-t = zeros(1, numTrainPerCat * numCategories);
+t = zeros(1, numTrainPerCat * length(nonZeroCategories));
 v = zeros(1, numValidatePerCat * numCategories);
 for i = 1:length(nonZeroCategories)
     [ ~, temp ] = find(trainY == nonZeroCategories(i));
@@ -82,11 +82,12 @@ for i = 1:length(nonZeroCategories)
 end
 for i = 1:length(zeroCategories)
     [ ~, temp ] = find(trainY == zeroCategories(i));
-    v((i-1)*numValidatePerCat+1:i*numValidatePerCat) = temp(1:numValidatePerCat);
+    j = length(nonZeroCategories) + i;
+    v((j-1)*numValidatePerCat+1:j*numValidatePerCat) = temp(1:numValidatePerCat);
 end
 
 % permute
-order = randperm(numTrainPerCat * numCategories);
+order = randperm(numTrainPerCat * length(nonZeroCategories));
 t = t(order);
 order = randperm(numValidatePerCat * numCategories);
 v = v(order);
@@ -128,7 +129,7 @@ resolution = fullParams.resolution;
 gseenAccuracies = zeros(1, resolution);
 gunseenAccuracies = zeros(1, resolution);
 gaccuracies = zeros(1, resolution);
-numPerIteration = numTrain / (resolution-1);
+numPerIteration = numTrainNonZeroShot / (resolution-1);
 logprobabilities = predictGaussianDiscriminant(mappedTestImages, mu, sigma, priors, zeroCategories);
 cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
 for i = 1:resolution
@@ -159,7 +160,7 @@ resolution = fullParams.resolution;
 pdfSeenAccuracies = zeros(1, resolution);
 pdfUnseenAccuracies = zeros(1, resolution);
 pdfAccuracies = zeros(1, resolution);
-numPerIteration = numTrain / (resolution-1);
+numPerIteration = numTrainNonZeroShot / (resolution-1);
 logprobabilities = predictGaussianDiscriminantMin(mappedTestImages, mu, sigma, priors, zeroCategories);
 cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
 for i = 1:resolution
