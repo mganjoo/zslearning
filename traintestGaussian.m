@@ -126,9 +126,9 @@ sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, mu, sigma, pri
 mappedTestImages = mapDoMap(testX, theta, trainParams);
 
 resolution = fullParams.resolution;
-gseenAccuracies = zeros(1, resolution);
-gunseenAccuracies = zeros(1, resolution);
-gaccuracies = zeros(1, resolution);
+gSeenAccuracies = zeros(1, resolution);
+gUnseenAccuracies = zeros(1, resolution);
+gAccuracies = zeros(1, resolution);
 numPerIteration = numTrainNonZeroShot / (resolution-1);
 logprobabilities = predictGaussianDiscriminant(mappedTestImages, mu, sigma, priors, zeroCategories);
 cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
@@ -139,12 +139,12 @@ for i = 1:resolution
     results = mapGaussianThresholdDoEvaluate( testX, testY, zeroCategories, label_names, wordTable, ...
         theta, trainParams, thetaSeen, trainParamsSeen, thetaUnseen, trainParamsUnseen, logprobabilities, cutoff, true);
 
-    gseenAccuracies(i) = results.seenAccuracy;
-    gunseenAccuracies(i) = results.unseenAccuracy;
-    gaccuracies(i) = results.accuracy;
+    gSeenAccuracies(i) = results.seenAccuracy;
+    gUnseenAccuracies(i) = results.unseenAccuracy;
+    gAccuracies(i) = results.accuracy;
 end
-gseenAccuracies = fliplr(gseenAccuracies);
-gunseenAccuracies = fliplr(gunseenAccuracies);
+gSeenAccuracies = fliplr(gSeenAccuracies);
+gUnseenAccuracies = fliplr(gUnseenAccuracies);
 gAccuracies = fliplr(gAccuracies);
 
 disp('Training Gaussian classifier using PDF');
@@ -187,7 +187,7 @@ loopSeenAccuracies = zeros(length(lambdas), length(thresholds));
 loopUnseenAccuracies = zeros(length(lambdas), length(thresholds));
 loopAccuracies = zeros(length(lambdas), length(thresholds));
 nonZeroCategoryIdPerm = randperm(length(nonZeroCategories));
-bestLambdas = repmat(lambdas(length(lambdas)/2), 1, length(nonZeroCategories));
+bestLambdas = repmat(lambdas(round(length(lambdas)/2)), 1, length(nonZeroCategories));
 mappedValidationImages = mapDoMap(Xvalidate, theta, trainParams);
 
 for k = 1:length(nonZeroCategories)
@@ -196,8 +196,8 @@ for k = 1:length(nonZeroCategories)
         tempLambdas = bestLambdas;
         tempLambdas(changedCategory) = lambdas(i);
         disp(tempLambdas);
-        [ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numTrainPerCat, knn, tempLambdas);
-        probs = calcOutlierPriors( mappedValidationImages, trainX, trainY, numTrainPerCat, nonZeroCategories, tempLambdas, knn, nplofAll, pdistAll );
+        [ nplofAll, pdistAll ] = trainOutlierPriors(mapped, Y, nonZeroCategories, numTrainPerCat, knn, tempLambdas);
+        probs = calcOutlierPriors( mappedValidationImages, mapped, Y, numTrainPerCat, nonZeroCategories, tempLambdas, knn, nplofAll, pdistAll );
         for t = 1:length(thresholds)
             fprintf('Threshold %f: ', thresholds(t));
             [~, results] = anomalyDoEvaluate(thetaSeen, ...
@@ -218,8 +218,8 @@ disp(bestLambdas);
 loopSeenAccuracies = zeros(1, length(thresholds));
 loopUnseenAccuracies = zeros(1, length(thresholds));
 loopAccuracies = zeros(1, length(thresholds));
-[ nplofAll, pdistAll ] = trainOutlierPriors(trainX, trainY, nonZeroCategories, numTrainPerCat, knn, bestLambdas);
-probs = calcOutlierPriors( mappedTestImages, trainX, trainY, numTrainPerCat, nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll );
+[ nplofAll, pdistAll ] = trainOutlierPriors(mapped, Y, nonZeroCategories, numTrainPerCat, knn, bestLambdas);
+probs = calcOutlierPriors( mappedTestImages, mapped, Y, numTrainPerCat, nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll );
 for t = 1:length(thresholds)
     fprintf('Threshold %f: ', thresholds(t));
             [~, results] = anomalyDoEvaluate(thetaSeen, ...
@@ -234,7 +234,7 @@ save(sprintf('%s/bestLambdas.mat', outputPath), 'bestLambdas');
 
 disp('Run Bayesian pipeline');
 [~, bayesianResult] = mapBayesianDoEvaluate(thetaSeen, thetaUnseen, ...
-    theta, trainParamsSeen, trainParamsUnseen, trainParams, trainX, trainY, testX, ...
+    theta, trainParamsSeen, trainParamsUnseen, trainParams, mapped, Y, testX, ...
     testY, bestLambdas, knn, nplofAll, pdistAll, numTrainPerCat, zeroCategories, nonZeroCategories, label_names, true);
 
 zeroList = label_names(zeroCategories);
