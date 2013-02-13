@@ -63,7 +63,7 @@ end
 
 zeroList = label_names(zeroCategories);
 zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
-outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset);
+outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
 
 if not(exist(outputPath, 'dir'))
     mkdir(outputPath);
