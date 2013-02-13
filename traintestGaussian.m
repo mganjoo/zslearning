@@ -116,6 +116,7 @@ save(sprintf('%s/thetaSeenSoftmax.mat', outputPath), 'thetaSeen', 'trainParamsSe
 disp('Training unseen softmax features');
 trainParamsUnseen.zeroShotCategories = zeroCategories;
 trainParamsUnseen.imageDataset = fullParams.dataset;
+trainParamsUnseen.wordDataset = fullParams.wordset;
 [thetaUnseen, trainParamsUnseen] = zeroShotTrain(trainParamsUnseen);
 save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainParamsUnseen');
 
