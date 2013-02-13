@@ -1,34 +1,56 @@
 % Generates confusion words not already present in the dataset
 % (because the system is trained well for classes it's already seen)
 
-% Load mX, Y, id_cat or id_truck and set zeroCategories
-% Load theta and trainParams
+% Load test.mat
+% Load theta and trainParams from appropriate file and modify 'dataset'
+% based on how it was trained
 
 addpath toolbox/pwmetric/;
 
+dataset = 'acl';
+zeroCategories = [4 10];
+
 disp('Loading random words for evaluation');
-ee = load(['word_data/acl/embeddings.mat']);
-vv = load(['word_data/acl/vocab.mat']);
+ee = load(['word_data/' dataset '/embeddings.mat']);
+vv = load(['word_data/' dataset '/vocab.mat']);
 
 load image_data/images/cifar10/meta.mat;
-load word_data/acl/cifar10/wordTable.mat;
-zeroCategories = [ 10 ];
-id_old = id_truck;
+load(['word_data/' dataset '/cifar10/wordTable.mat']);
 
-ind = find(ismember(vv.vocab, label_names));
-numRandom = 5:5:50;
+Xt = testX(:, ismember(testY, zeroCategories));
+Yt = testY(ismember(testY, zeroCategories));
+mX = mapDoMap(Xt, theta, trainParams);
+
+confusionCategories = [ 4, 10 ];
 accuracies = zeros(1, length(numRandom));
-for j = 1:length(numRandom)
-%     randIndices = randi(length(ind), 1, numRandom(j));
-%     words = [ wordTable(:, zeroCategories) ee.embeddings(:, randIndices) ];
-    id_new = id_old(~ismember(vv.vocab(id_old), label_names));    
-    words = [ wordTable(:, zeroCategories) ee.embeddings(:, id_new(1:numRandom(j)))];
-    tDist = slmetric_pw(words, mX, 'eucdist');
-    [~, tGuessedCategories ] = min(tDist);
-    candidateIds = ismember(tGuessedCategories, 1:length(zeroCategories));
-
-    accuracies(j) = sum(Y(candidateIds) == zeroCategories(tGuessedCategories(candidateIds))) / length(Y);
-    fprintf('Num_random: %d, Accuracy: %.3f\n', numRandom(j), accuracies(j));
+numRandom = 0:2:40;
+for tt = 1:length(confusionCategories)
+    confusionWordIds = knnsearch(ee.embeddings', wordTable(:, confusionCategories(tt))', 'K', 100);
+    confusionWords_trainedRemoved = confusionWordIds(:, ~ismember(vv.vocab(confusionWordIds), label_names));
+    fprintf('Nearest neighbors for %s\n', label_names{confusionCategories(tt)});
+    disp(vv.vocab(confusionWords_trainedRemoved(1:30)));
+    for j = 1:length(numRandom)
+        words = [ wordTable(:, zeroCategories) ee.embeddings(:, confusionWords_trainedRemoved(1:numRandom(j)))];
+        tDist = slmetric_pw(words, mX, 'eucdist');
+        [~, tGuessedCategories ] = min(tDist);
+        candidateIds = ismember(tGuessedCategories, 1:length(zeroCategories));
+        accuracies(tt, j) = sum(Yt(candidateIds) == zeroCategories(tGuessedCategories(candidateIds))) / length(Yt);
+    end
 end
 
-plot(numRandom, accuracies);
+markers = { '-+r', '-ob' };
+hold on;
+for i = 1:length(confusionCategories)
+    plot(numRandom, accuracies(i, :), markers{i}, 'linewidth', 1.2);
+end
+h_legend = legend(arrayfun(@(x) ['using NN of ', char(x)], label_names(confusionCategories), 'UniformOutput', false));
+h_xl = xlabel('Number of nearest neighbors used as distractor words');
+h_yl = ylabel('Accuracy');
+set(h_legend, 'FontSize', 14);
+set(h_xl, 'FontSize', 11);
+set(h_yl, 'FontSize', 11);
+hold off;
+
+print -dpdf distractors.pdf;
+print -deps distractors.eps;
+print -dpng distractors.png;

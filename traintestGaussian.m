@@ -155,7 +155,7 @@ disp('Training Gaussian classifier using PDF');
 % Train Gaussian classifier
 mapped = mapDoMap(X, theta, trainParams);
 [mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y, numCategories, wordTable);
-sortedLogprobabilities = sort(predictGaussianDiscriminantMin(mapped, mu, sigma, priors, zeroCategories));
+sortedLogprobabilities = sort(predictGaussianDiscriminantMin(mapped, mu, sigma, zeroCategories));
 
 % Test
 mappedTestImages = mapDoMap(testX, theta, trainParams);
@@ -165,7 +165,7 @@ pdfSeenAccuracies = zeros(1, resolution);
 pdfUnseenAccuracies = zeros(1, resolution);
 pdfAccuracies = zeros(1, resolution);
 numPerIteration = numTrainNonZeroShot / (resolution-1);
-logprobabilities = predictGaussianDiscriminantMin(mappedTestImages, mu, sigma, priors, zeroCategories);
+logprobabilities = predictGaussianDiscriminantMin(mappedTestImages, mu, sigma, zeroCategories);
 cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
 for i = 1:resolution
     cutoff = cutoffs(i);
