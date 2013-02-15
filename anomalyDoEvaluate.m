@@ -19,7 +19,7 @@ guessedCategories(seenIndices) = nonZeroCategoryTypes(ind);
 
 % This is the unseen label classifier
 % This is the unseen label classifier
-unseenWordTable = wordTable(:, nonzeroCategoryTypes);
+unseenWordTable = wordTable(:, zeroCategoryTypes);
 tDist = slmetric_pw(unseenWordTable, mappedImages(:, unseenIndices), 'eucdist');
 [~, tGuessedCategories ] = min(tDist);
 guessedCategories(unseenIndices) = zeroCategoryTypes(tGuessedCategories);

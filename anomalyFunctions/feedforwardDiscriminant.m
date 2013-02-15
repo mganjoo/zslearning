@@ -15,7 +15,7 @@ pred = bsxfun(@rdivide,pred,sum(pred));
 guessedLabels(seenIndices) = nonzeroCategoryTypes(gind);
 
 % This is the unseen label classifier
-unseenWordTable = wordTable(:, nonzeroCategoryTypes);
+unseenWordTable = wordTable(:, zeroCategoryTypes);
 tDist = slmetric_pw(unseenWordTable, mappedImages(:, unseenIndices), 'eucdist');
 [~, tGuessedCategories ] = min(tDist);
 guessedLabels(unseenIndices) = zeroCategoryTypes(tGuessedCategories);
