@@ -29,8 +29,8 @@ if strcmp(dataset, 'cifar10')
     if isfield(fullParams,'zeroCategories')
         zeroCategories = fullParams.zeroCategories;
     else
-        % 'frog', 'truck'
-        zeroCategories = [ 7, 10 ];
+        % 'cat', 'truck'
+        zeroCategories = [ 4, 10 ];
     end
 elseif strcmp(dataset, 'cifar96')
     TOTAL_NUM_TRAIN = 48000;
