@@ -30,7 +30,7 @@ if strcmp(dataset, 'cifar10')
         zeroCategories = fullParams.zeroCategories;
     else
         % 'frog', 'truck'
-        zeroCategories = [ 7, 10 ];
+        zeroCategories = [ 4, 10 ];
     end
 elseif strcmp(dataset, 'cifar96')
     TOTAL_NUM_TRAIN = 48000;
@@ -169,7 +169,7 @@ else
                 fprintf('Threshold %f: ', thresholds(t));
                 [~, results] = anomalyDoEvaluate(thetaSeen, ...
                     trainParamsSeen, thetaUnseen, trainParamsUnseen, probs, Xvalidate, mappedValidationImages, Yvalidate, ...
-                    thresholds(t), zeroCategories, nonZeroCategories, false);
+                    thresholds(t), zeroCategories, nonZeroCategories, wordTable, false);
                 loopSeenAccuracies(i, t) = results.seenAccuracy;
                 loopUnseenAccuracies(i, t) = results.unseenAccuracy;
                 loopAccuracies(i, t) = results.accuracy;
@@ -194,7 +194,7 @@ for t = 1:length(thresholds)
     fprintf('Threshold %f: ', thresholds(t));
             [~, results] = anomalyDoEvaluate(thetaSeen, ...
                 trainParamsSeen, thetaUnseen, trainParamsUnseen, probs, testX, mappedTestImages, testY, ...
-                thresholds(t), zeroCategories, nonZeroCategories, false);
+                thresholds(t), zeroCategories, nonZeroCategories, wordTable, false);
     loopSeenAccuracies(t) = results.seenAccuracy;
     loopUnseenAccuracies(t) = results.unseenAccuracy;
     loopAccuracies(t) = results.accuracy;

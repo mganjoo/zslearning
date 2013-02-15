@@ -7,7 +7,7 @@ numCategories = size(wordTable, 2);
 
 nonzeroCategoryTypes = setdiff(1:length(categoryNames), zeroCategoryTypes);
 
-guessedCategories = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, logprobabilities, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes);
+guessedCategories = feedforwardDiscriminant(thetaMapping, thetaSoftmaxSeen, thetaSoftmaxUnseen, trainParams, trainParamsSeen, trainParamsUnseen, logprobabilities, images, maxLogprobability, zeroCategoryTypes, nonzeroCategoryTypes, wordTable);
 
 % Calculate scores
 confusion = zeros(numCategories, numCategories);

@@ -1,5 +1,7 @@
 function [guessedCategories, results] = anomalyDoEvaluate(thetaSeenSoftmax, ...
-    smTrainParams, thetaUnseenSoftmax, unseenSmTrainParams, priorProbs, images, mappedImages, categories, threshold, zeroCategoryTypes, nonZeroCategoryTypes, doPrint)
+    smTrainParams, thetaUnseenSoftmax, unseenSmTrainParams, priorProbs, images, mappedImages, categories, threshold, zeroCategoryTypes, nonZeroCategoryTypes, wordTable, doPrint)
+
+addpath toolbox/pwmetric;
 
 numImages = size(images, 2);
 numCategories = length(zeroCategoryTypes) + length(nonZeroCategoryTypes);
@@ -16,11 +18,16 @@ pred = bsxfun(@rdivide,pred,sum(pred));
 guessedCategories(seenIndices) = nonZeroCategoryTypes(ind);
 
 % This is the unseen label classifier
-Wu = stack2param(thetaUnseenSoftmax, unseenSmTrainParams.decodeInfo);
-pred = exp(Wu{1}*mappedImages(:, unseenIndices)); % k by n matrix with all calcs needed
-pred = bsxfun(@rdivide,pred,sum(pred));
-[~, gind] = max(pred);
-guessedCategories(unseenIndices) = zeroCategoryTypes(gind);
+% This is the unseen label classifier
+unseenWordTable = wordTable(:, nonzeroCategoryTypes);
+tDist = slmetric_pw(unseenWordTable, mappedImages(:, unseenIndices), 'eucdist');
+[~, tGuessedCategories ] = min(tDist);
+guessedCategories(unseenIndices) = zeroCategoryTypes(tGuessedCategories);
+% Wu = stack2param(thetaUnseenSoftmax, unseenSmTrainParams.decodeInfo);
+% pred = exp(Wu{1}*mappedImages(:, unseenIndices)); % k by n matrix with all calcs needed
+% pred = bsxfun(@rdivide,pred,sum(pred));
+% [~, gind] = max(pred);
+% guessedCategories(unseenIndices) = zeroCategoryTypes(gind);
 
 % tDist = slmetric_pw(unseenWordTable, mappedImages(:, unseenIndices), 'eucdist');
 % [~, tGuessedCategories ] = min(tDist);

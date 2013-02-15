@@ -206,7 +206,7 @@ for k = 1:length(nonZeroCategories)
             fprintf('Threshold %f: ', thresholds(t));
             [~, results] = anomalyDoEvaluate(thetaSeen, ...
                 trainParamsSeen, thetaUnseen, trainParamsUnseen, probs, Xvalidate, mappedValidationImages, Yvalidate, ...
-                thresholds(t), zeroCategories, nonZeroCategories, false);
+                thresholds(t), zeroCategories, nonZeroCategories, wordTable, false);
             loopSeenAccuracies(i, t) = results.seenAccuracy;
             loopUnseenAccuracies(i, t) = results.unseenAccuracy;
             loopAccuracies(i, t) = results.accuracy;
@@ -228,7 +228,7 @@ for t = 1:length(thresholds)
     fprintf('Threshold %f: ', thresholds(t));
             [~, results] = anomalyDoEvaluate(thetaSeen, ...
                 trainParamsSeen, thetaUnseen, trainParamsUnseen, probs, testX, mappedTestImages, testY, ...
-                thresholds(t), zeroCategories, nonZeroCategories, false);
+                thresholds(t), zeroCategories, nonZeroCategories, wordTable, false);
     loopSeenAccuracies(t) = results.seenAccuracy;
     loopUnseenAccuracies(t) = results.unseenAccuracy;
     loopAccuracies(t) = results.accuracy;
