@@ -4,8 +4,8 @@ addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
 addpath costFunctions/;
 
-fields = {{'dataset',        'cifar10'};
-          {'wordset',        'acl'};
+fields = {{'dataset',        'animals'};
+          {'wordset',        'huang'};
           {'resolution',     11};
 };
 
@@ -22,83 +22,119 @@ dataset = fullParams.dataset;
 wordset = fullParams.wordset;
 trainFrac = 1;
 
-if strcmp(dataset, 'cifar10')
-    TOTAL_NUM_TRAIN = 50000;
-    TOTAL_NUM_PER_CATEGORY = 5000;
-    numCategories = 10;
-    if isfield(fullParams,'zeroCategories')
-        zeroCategories = fullParams.zeroCategories;
+if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, 'cifar106')
+    if strcmp(dataset, 'cifar10')
+        TOTAL_NUM_TRAIN = 50000;
+        TOTAL_NUM_PER_CATEGORY = 5000;
+        numCategories = 10;
+        if isfield(fullParams,'zeroCategories')
+            zeroCategories = fullParams.zeroCategories;
+        else
+            % 'cat', 'truck'
+            zeroCategories = [ 4, 10 ];
+        end
+    elseif strcmp(dataset, 'cifar96')
+        TOTAL_NUM_TRAIN = 48000;
+        TOTAL_NUM_PER_CATEGORY = 500;
+        numCategories = 96;
+        if isfield(fullParams,'zeroCategories')
+            zeroCategories = fullParams.zeroCategories;
+        else
+            % 'boy', 'lion', 'orange', 'train', 'couch', 'house' 
+            zeroCategories = [ 12, 42, 52, 87, 26, 36 ];
+        end
     else
-        % 'cat', 'truck'
-        zeroCategories = [ 4, 10 ];
+        TOTAL_NUM_TRAIN = 53000;
+        TOTAL_NUM_PER_CATEGORY = 500;
+        numCategories = 106;
+        if isfield(fullParams,'zeroCategories')
+            zeroCategories = fullParams.zeroCategories;
+        else
+            % 'forest', 'lobster', 'boy', 'truck', 'orange', 'cat'
+            zeroCategories = [ 33, 44, 12, 106, 52, 100 ];
+        end
     end
-elseif strcmp(dataset, 'cifar96')
-    TOTAL_NUM_TRAIN = 48000;
-    TOTAL_NUM_PER_CATEGORY = 500;
-    numCategories = 96;
-    if isfield(fullParams,'zeroCategories')
-        zeroCategories = fullParams.zeroCategories;
-    else
-        % 'boy', 'lion', 'orange', 'train', 'couch', 'house' 
-        zeroCategories = [ 12, 42, 52, 87, 26, 36 ];
+
+    if not(exist('skipLoad','var')) || skipLoad == false
+        disp('Loading data');
+        load(['image_data/features/' dataset '/train.mat']);
+        load(['image_data/features/' dataset '/test.mat']);
+        load(['word_data/' wordset '/' dataset '/wordTable.mat']);
     end
-else
-    TOTAL_NUM_TRAIN = 53000;
-    TOTAL_NUM_PER_CATEGORY = 500;
-    numCategories = 106;
-    if isfield(fullParams,'zeroCategories')
-        zeroCategories = fullParams.zeroCategories;
-    else
-        % 'forest', 'lobster', 'boy', 'truck', 'orange', 'cat'
-        zeroCategories = [ 33, 44, 12, 106, 52, 100 ];
+
+    zeroList = label_names(zeroCategories);
+    zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
+    outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
+
+    if not(exist(outputPath, 'dir'))
+        mkdir(outputPath);
     end
-end
 
-if not(exist('skipLoad','var')) || skipLoad == false
-    disp('Loading data');
-    load(['image_data/features/' dataset '/train.mat']);
-    load(['image_data/features/' dataset '/test.mat']);
-    load(['word_data/' wordset '/' dataset '/wordTable.mat']);
-end
+    disp('Zero categories:');
+    disp(zeroCategories);
+    nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 
-zeroList = label_names(zeroCategories);
-zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
-outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
+    numTrainNonZeroShot = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
+    numTrainPerCat = 0.95 * numTrainNonZeroShot / length(nonZeroCategories);
+    numValidatePerCat = numTrainPerCat * 0.05 / 0.95;
+    t = zeros(1, numTrainPerCat * length(nonZeroCategories));
+    v = zeros(1, numValidatePerCat * numCategories);
+    for i = 1:length(nonZeroCategories)
+        [ ~, temp ] = find(trainY == nonZeroCategories(i));
+        t((i-1)*numTrainPerCat+1:i*numTrainPerCat) = temp(1:numTrainPerCat);
+        v((i-1)*numValidatePerCat+1:i*numValidatePerCat) = temp(numTrainPerCat+1:end);
+    end
+    for i = 1:length(zeroCategories)
+        [ ~, temp ] = find(trainY == zeroCategories(i));
+        j = length(nonZeroCategories) + i;
+        v((j-1)*numValidatePerCat+1:j*numValidatePerCat) = temp(1:numValidatePerCat);
+    end
 
-if not(exist(outputPath, 'dir'))
-    mkdir(outputPath);
-end
+    % permute
+    order = randperm(numTrainPerCat * length(nonZeroCategories));
+    t = t(order);
+    order = randperm(numValidatePerCat * numCategories);
+    v = v(order);
+    X = trainX(:, t);
+    Y = trainY(t);
+    Xvalidate = trainX(:, v);
+    Yvalidate = trainY(v);
+    save(sprintf('%s/perm.mat', outputPath), 't', 'v');
+elseif strcmp(dataset, 'animals')
+    if not(exist('skipLoad','var')) || skipLoad == false
+        disp('Loading data');
+        numCategories = 50;
+        t = load('image_data/features/animals/features.mat');
+        s = load('image_data/features/animals/idxs.mat');
+        load(['word_data/' wordset '/' dataset '/wordTable.mat']);
+        
+        ids = randperm(length(s.trainIdxs));
+        train_id_cutoff = floor(0.8 * length(ids));
+        
+        X = t.X(:, s.trainIdxs(ids(1:train_id_cutoff)));
+        Y = s.mappedY(s.trainIdxs(ids(1:train_id_cutoff)));
+        Xvalid = t.X(:, s.trainIdxs(ids(train_id_cutoff+1:end)));
+        Yvalid = s.mappedY(s.trainIdxs(ids(train_id_cutoff+1:end)));
+        testX = t.X(:, s.testIdxs);
+        testY = s.mappedY(s.testIdxs);
+        zeroCategories = unique(testY);
+        zeroList = label_names(zeroCategories);
+        zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
+        outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
 
-disp('Zero categories:');
-disp(zeroCategories);
-nonZeroCategories = setdiff(1:numCategories, zeroCategories);
+        if not(exist(outputPath, 'dir'))
+            mkdir(outputPath);
+        end
 
-numTrainNonZeroShot = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
-numTrainPerCat = 0.95 * numTrainNonZeroShot / length(nonZeroCategories);
-numValidatePerCat = numTrainPerCat * 0.05 / 0.95;
-t = zeros(1, numTrainPerCat * length(nonZeroCategories));
-v = zeros(1, numValidatePerCat * numCategories);
-for i = 1:length(nonZeroCategories)
-    [ ~, temp ] = find(trainY == nonZeroCategories(i));
-    t((i-1)*numTrainPerCat+1:i*numTrainPerCat) = temp(1:numTrainPerCat);
-    v((i-1)*numValidatePerCat+1:i*numValidatePerCat) = temp(numTrainPerCat+1:end);
-end
-for i = 1:length(zeroCategories)
-    [ ~, temp ] = find(trainY == zeroCategories(i));
-    j = length(nonZeroCategories) + i;
-    v((j-1)*numValidatePerCat+1:j*numValidatePerCat) = temp(1:numValidatePerCat);
-end
-
-% permute
-order = randperm(numTrainPerCat * length(nonZeroCategories));
-t = t(order);
-order = randperm(numValidatePerCat * numCategories);
-v = v(order);
-X = trainX(:, t);
-Y = trainY(t);
-Xvalidate = trainX(:, v);
-Yvalidate = trainY(v);
-save(sprintf('%s/perm.mat', outputPath), 't', 'v');
+        disp('Zero categories:');
+        disp(zeroCategories);
+        nonZeroCategories = setdiff(1:numCategories, zeroCategories);
+    end    
+end 
+    
+% At the end, we have X, Y, Xvalidate, Yvalidate, wordTable, outputPath,
+% numCategories, nonZeroCategories, zeroCategories, testX, testY,
+% label_names
 
 disp('Training mapping function');
 % Train mapping function
