@@ -5,7 +5,7 @@ addpath toolbox/pwmetric/;
 addpath costFunctions/;
 
 fields = {{'dataset',        'animals'};
-          {'wordset',        'huang'};
+          {'wordset',        'acl'};
           {'resolution',     11};
 };
 
@@ -103,7 +103,7 @@ if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, '
 elseif strcmp(dataset, 'animals')
     if not(exist('skipLoad','var')) || skipLoad == false
         disp('Loading data');
-        numCategories = 50;
+        numCategories = 40;
         t = load('image_data/features/animals/features.mat');
         s = load('image_data/features/animals/idxs.mat');
         load(['word_data/' wordset '/' dataset '/wordTable.mat']);
