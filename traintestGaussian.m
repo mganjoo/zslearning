@@ -117,7 +117,7 @@ elseif strcmp(dataset, 'animals')
         Yvalid = s.mappedY(s.trainIdxs(ids(train_id_cutoff+1:end)));
         testX = t.X(:, s.testIdxs);
         testY = s.mappedY(s.testIdxs);
-        zeroCategories = unique(testY);
+        zeroCategories = setdiff(unique(testY), unique(Y));
         zeroList = label_names(zeroCategories);
         zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
         outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
