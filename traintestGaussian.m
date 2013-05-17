@@ -5,7 +5,7 @@ addpath toolbox/pwmetric/;
 addpath costFunctions/;
 
 fields = {{'dataset',        'animals'};
-          {'wordset',        'huang'};
+          {'wordset',        'acl'};
           {'resolution',     11};
 };
 
