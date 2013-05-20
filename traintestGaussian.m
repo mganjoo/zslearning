@@ -113,13 +113,14 @@ elseif strcmp(dataset, 'animals')
         
         X = t.X(:, s.trainIdxs(ids(1:train_id_cutoff)));
         Y = s.mappedY(s.trainIdxs(ids(1:train_id_cutoff)));
-        Xvalid = t.X(:, s.trainIdxs(ids(train_id_cutoff+1:end)));
-        Yvalid = s.mappedY(s.trainIdxs(ids(train_id_cutoff+1:end)));
+        Xvalidate = t.X(:, s.trainIdxs(ids(train_id_cutoff+1:end)));
+        Yvalidate = s.mappedY(s.trainIdxs(ids(train_id_cutoff+1:end)));
         testX = t.X(:, s.testIdxs);
         testY = s.mappedY(s.testIdxs);
         zeroCategories = setdiff(unique(testY), unique(Y));
         zeroList = label_names(zeroCategories);
         zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
+        numTrainNonZeroShot = length(s.trainIdxs);
         outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
 
         if not(exist(outputPath, 'dir'))
@@ -146,7 +147,7 @@ disp('Training seen softmax features');
 mappedCategories = zeros(1, numCategories);
 mappedCategories(nonZeroCategories) = 1:numCategories-length(zeroCategories);
 trainParamsSeen.nonZeroShotCategories = nonZeroCategories;
-[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X, mappedCategories(Y), trainParamsSeen);
+[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X, mappedCategories(Y), trainParamsSeen, label_names(nonZeroCategories), Xvalid, mappedCategories(Yvalid));
 save(sprintf('%s/thetaSeenSoftmax.mat', outputPath), 'thetaSeen', 'trainParamsSeen');
 
 disp('Training unseen softmax features');
@@ -169,7 +170,7 @@ resolution = fullParams.resolution;
 gSeenAccuracies = zeros(1, resolution);
 gUnseenAccuracies = zeros(1, resolution);
 gAccuracies = zeros(1, resolution);
-numPerIteration = numTrainNonZeroShot / (resolution-1);
+numPerIteration = floor(length(sortedLogprobabilities) / (resolution-1));
 logprobabilities = predictGaussianDiscriminant(mappedTestImages, mu, sigma, priors, zeroCategories);
 cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
 for i = 1:resolution
@@ -200,7 +201,7 @@ resolution = fullParams.resolution;
 pdfSeenAccuracies = zeros(1, resolution);
 pdfUnseenAccuracies = zeros(1, resolution);
 pdfAccuracies = zeros(1, resolution);
-numPerIteration = numTrainNonZeroShot / (resolution-1);
+numPerIteration = floor(length(sortedLogprobabilities) / (resolution-1));
 logprobabilities = predictGaussianDiscriminantMin(mappedTestImages, mu, sigma, zeroCategories);
 cutoffs = [ arrayfun(@(x) sortedLogprobabilities((x-1)*numPerIteration+1), 1:resolution-1) sortedLogprobabilities(end) ];
 for i = 1:resolution
