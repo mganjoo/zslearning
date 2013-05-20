@@ -147,7 +147,7 @@ disp('Training seen softmax features');
 mappedCategories = zeros(1, numCategories);
 mappedCategories(nonZeroCategories) = 1:numCategories-length(zeroCategories);
 trainParamsSeen.nonZeroShotCategories = nonZeroCategories;
-[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X, mappedCategories(Y), trainParamsSeen, label_names(nonZeroCategories), Xvalid, mappedCategories(Yvalid));
+[thetaSeen, trainParamsSeen] = nonZeroShotTrain(X, mappedCategories(Y), trainParamsSeen, label_names(nonZeroCategories), Xvalidate, mappedCategories(Yvalidate));
 save(sprintf('%s/thetaSeenSoftmax.mat', outputPath), 'thetaSeen', 'trainParamsSeen');
 
 disp('Training unseen softmax features');

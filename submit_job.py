@@ -10,7 +10,7 @@ PROJECT_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 TRAIN_SCRIPT = os.path.join(PROJECT_PATH, "train.py")
 PYTHON_EXE   = '/u/nlp/bin/python2.7'
 
-qsubCommand = "nlpsub --mail=bea --name={name!r} --log-dir={outputPath!r} --clobber --priority=high --queue=long {qsubOptionalArguments} {command}"
+qsubCommand = "nlpsub --mail=bea --name={name!r} --log-dir={outputPath!r} --clobber {qsubOptionalArguments} {command}"
 matlabCommand = "{pythonExe} {trainScript} --wordset {wordset} --trainset {trainset} --maxPass {maxPass} --maxIter {maxIter} --saveEvery {saveEvery} --wordReg {wordReg} --imageReg {imageReg} --outputPath {outputPath}"
 
 parser = argparse.ArgumentParser(description="Submit training job to NLP cluster")
