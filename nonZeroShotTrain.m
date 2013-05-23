@@ -1,4 +1,4 @@
-function [theta, trainParams] = nonZeroShotTrain(X, Y, trainParams, categoryNames, Xvalid, Yvalid)
+function [theta, trainParams] = nonZeroShotTrain(X, Y, trainParams, categoryNames)
 
 addpath toolbox/;
 addpath toolbox/minFunc/;
@@ -68,7 +68,7 @@ theta = trainParams.trainFunction(trainParams, dataToUse, theta);
 gtime = toc(globalStart);
 fprintf('Total time: %f s\n', gtime);
 
-softmaxDoEvaluate( X, Y, categoryNames, theta, trainParams, true )
-softmaxDoEvaluate( Xvalid, Yvalid, categoryNames, theta, trainParams, true )
+% Get train accuracy
+softmaxDoEvaluate( X, Y, categoryNames, theta, trainParams, true );
 
 end
