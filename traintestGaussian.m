@@ -4,7 +4,7 @@ addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
 addpath costFunctions/;
 
-fields = {{'dataset',        'animals'};
+fields = {{'dataset',        'animals_combined'};
           {'wordset',        'acl'};
           {'resolution',     11};
 };
@@ -100,11 +100,14 @@ if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, '
     Xvalidate = trainX(:, v);
     Yvalidate = trainY(v);
     save(sprintf('%s/perm.mat', outputPath), 't', 'v');
-elseif strcmp(dataset, 'animals')
+elseif strcmp(dataset, 'animals_combined')
     if not(exist('skipLoad','var')) || skipLoad == false
         disp('Loading data');
-        numCategories = 40;
-        t = load('image_data/features/animals/features.mat');
+        currDir = pwd();
+        cd('image_data/features/animals');
+        [s.trainIdxs, s.testIdxs, s.mappedY, numCategories] = animals_split(wordset, dataset);
+        cd(currDir);
+        t = load(['image_data/features/animals/' dataset '.mat']);
         s = load('image_data/features/animals/idxs.mat');
         load(['word_data/' wordset '/' dataset '/wordTable.mat']);
         
@@ -121,6 +124,8 @@ elseif strcmp(dataset, 'animals')
         zeroList = label_names(zeroCategories);
         zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
         numTrainNonZeroShot = length(s.trainIdxs);
+        nonZeroCategories = setdiff(1:numCategories, zeroCategories);
+        numTrainPerCat = min(arrayfun(@(x) sum(Y == x), 1:length(label_names(nonZeroCategories))));
         outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
 
         if not(exist(outputPath, 'dir'))
@@ -129,13 +134,12 @@ elseif strcmp(dataset, 'animals')
 
         disp('Zero categories:');
         disp(zeroCategories);
-        nonZeroCategories = setdiff(1:numCategories, zeroCategories);
     end    
-end 
+end
     
 % At the end, we have X, Y, Xvalidate, Yvalidate, wordTable, outputPath,
 % numCategories, nonZeroCategories, zeroCategories, testX, testY,
-% label_names
+% label_names, numTrainPerCat
 
 disp('Training mapping function');
 % Train mapping function
