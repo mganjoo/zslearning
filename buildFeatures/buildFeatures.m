@@ -56,7 +56,7 @@ trainX   = trainXCs';
 
 %% Load CIFAR test data
 fprintf('Loading test data...\n');
-f1 = load([CIFAR_DIR '/test96.mat']);
+f1 = load([CIFAR_DIR '/test.mat']);
 testX = double(f1.data');
 testY = double(f1.labels);
 clear f1;
