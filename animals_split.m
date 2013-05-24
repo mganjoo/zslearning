@@ -41,12 +41,14 @@ end
 
 fprintf('seen test: %d\n', test_count);
 disp('****Unseen');
+unseenKeptLabels = [];
 for i = 1:length(testclasses)
     id = find(ismember(label_names, testclasses{i}));
     if ~any(ismember(vocab, label_names{id}))
         continue;
     else
         keptLabels = [ keptLabels id ];
+        unseenKeptLabels = [ unseenKeptLabels id ];
     end
     tt = sum(s.labels == id);
     fprintf('%s test: %d\n', char(label_names{id}), tt); 
@@ -82,7 +84,9 @@ labels = mappedLabelIdxs(s.labels(testIdxs));
 save([basedir 'test.mat'], 'data', 'labels');
 
 label_names = label_names(keptLabels);
+zero_label_names = label_names(unseenKeptLabels);
 save([basedir 'meta.mat'], 'label_names');
+save([basedir 'zero.mat'], 'zero_label_names');
 
 wordTable = zeros(size(embeddings, 1), length(label_names));
 for i = 1:length(label_names)

@@ -4,7 +4,7 @@ addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
 addpath costFunctions/;
 
-fields = {{'dataset',        'animals_combined'};
+fields = {{'dataset',        'animals'};
           {'wordset',        'acl'};
           {'resolution',     11};
 };
@@ -21,6 +21,13 @@ end
 dataset = fullParams.dataset;
 wordset = fullParams.wordset;
 trainFrac = 1;
+
+if not(exist('skipLoad','var')) || skipLoad == false
+    disp('Loading data');
+    load(['image_data/features/' dataset '/train.mat']);
+    load(['image_data/features/' dataset '/test.mat']);
+    load(['word_data/' wordset '/' dataset '/wordTable.mat']);
+end
 
 if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, 'cifar106')
     if strcmp(dataset, 'cifar10')
@@ -53,13 +60,6 @@ if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, '
             % 'forest', 'lobster', 'boy', 'truck', 'orange', 'cat'
             zeroCategories = [ 33, 44, 12, 106, 52, 100 ];
         end
-    end
-
-    if not(exist('skipLoad','var')) || skipLoad == false
-        disp('Loading data');
-        load(['image_data/features/' dataset '/train.mat']);
-        load(['image_data/features/' dataset '/test.mat']);
-        load(['word_data/' wordset '/' dataset '/wordTable.mat']);
     end
 
     zeroList = label_names(zeroCategories);
@@ -100,48 +100,51 @@ if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, '
     Xvalidate = trainX(:, newV);
     Yvalidate = trainY(newV);
     save(sprintf('%s/perm.mat', outputPath), 't', 'v');
-elseif strcmp(dataset, 'animals_combined')
+elseif strcmp(dataset, 'animals')
     if not(exist('skipLoad','var')) || skipLoad == false
         disp('Loading data');
-        [s.seenIdxs, s.unseenIdxs, s.mappedY, numCategories] = animals_split(wordset, dataset);
-        t = load(['image_data/features/animals/' dataset '.mat']);
-        load(['word_data/' wordset '/' dataset '/wordTable.mat']);
+        load('image_data/images/animals/zero.mat');
+        arrayfun(@(x) find(ismember(label_names, zero_label_names{x})), 1:length(zero_label_names))
         
+        % Mark zeroCategories
+        numCategories = length(label_names);
         zeroCategories = unique(s.mappedY(s.unseenIdxs));
         nonZeroCategories = setdiff(1:numCategories, zeroCategories);
 
         newTrain = [];
-        newV = [];
+        newV1 = [];
         for i = 1:length(nonZeroCategories)
-            currIdxs = find(s.mappedY == nonZeroCategories(i));
+            currIdxs = find(trainY == nonZeroCategories(i));
             tids = randperm(length(currIdxs));
-            train_id_cutoff = floor(0.85 * length(tids));
+            train_id_cutoff = floor(0.9 * length(tids));
             newTrain = [ newTrain currIdxs(tids(1:train_id_cutoff)) ];
-            newV = [ newV currIdxs(tids(train_id_cutoff+1:end)) ];
+            newV1 = [ newV1 currIdxs(tids(train_id_cutoff+1:end)) ];
         end
         
         % add some unseen images to v for testing loOP model
         newTest = [];
+        newV2 = [];
         for i = 1:length(zeroCategories)
-            currIdxs = find(s.mappedY == zeroCategories(i));
+            currIdxs = find(testY == zeroCategories(i));
             tids = randperm(length(currIdxs));
             test_id_cutoff = floor(0.95 * length(tids));
             newTest = [ newTest currIdxs(tids(1:test_id_cutoff)) ];
-            newV = [ newV currIdxs(tids(test_id_cutoff+1:end)) ];
+            newV2 = [ newV2 currIdxs(tids(test_id_cutoff+1:end)) ];
         end
         newTrain = newTrain(randperm(length(newTrain)));
         newTest = newTest(randperm(length(newTest)));
-        newV = newV(randperm(length(newV)));
         
-        X = t.X(:, newTrain);
-        Y = s.mappedY(newTrain);
-        Xvalidate = t.X(:, newV);
-        Yvalidate = s.mappedY(newV);
-        testX = t.X(:, newTest);
-        testY = s.mappedY(newTest);
+        X = trainX(:, newTrain);
+        Y = trainY(newTrain);
+        testX = testX(:, newTest);
+        testY = testY(newTest);
+        Xvalidate = [trainX(:, newV1) testX(:, newV2)];
+        Yvalidate = [trainY(newV1) testY(newV2)];
+        newV = randperm(length(Yvalidate));
+        Xvalidate = Xvalidate(:, newV);
+        Yvalidate = Yvalidate(newV);
         zeroList = label_names(zeroCategories);
         zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
-        numTrainNonZeroShot = length(newTrain) + length(newV);
         numTrainPerCat = min(arrayfun(@(x) sum(Y == x), 1:length(label_names(nonZeroCategories))));
         outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
 
@@ -149,7 +152,7 @@ elseif strcmp(dataset, 'animals_combined')
             mkdir(outputPath);
         end
         
-        save([outputPath '/finalIds.txt'], 'newTrain', 'newTest', 'newV');
+        save([outputPath '/finalIds.txt'], 'newTrain', 'newTest', 'newV1', 'newV2');
         disp('Zero categories:');
         disp(zeroCategories);
     end    
