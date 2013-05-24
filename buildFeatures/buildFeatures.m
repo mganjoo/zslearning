@@ -68,8 +68,8 @@ testX   = testXCs';
 
 % save files
 fprintf('Saving train data...\n');
-save([OUTPUT_DIR 'train.mat'], 'trainX', 'trainY', '-v7.3');
+save([OUTPUT_DIR '/train.mat'], 'trainX', 'trainY', '-v7.3');
 fprintf('Saving test data...\n');
-save([OUTPUT_DIR 'test.mat'], 'testX', 'testY', '-v7.3');
+save([OUTPUT_DIR '/test.mat'], 'testX', 'testY', '-v7.3');
 
 end
