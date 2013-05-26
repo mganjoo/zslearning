@@ -7,12 +7,12 @@ addpath costFunctions/;
 
 %% Model Parameters
 fields = {{'wordDataset',         'acl'};            % type of embedding dataset to use ('turian.200', 'acl')
-          {'lambda',              1E-3};   % regularization parameter
+          {'lambda',              1E-4};   % regularization parameter
           {'numReplicate',        0};     % one-shot replication
           {'dropoutFraction',     1};    % drop-out fraction
           {'costFunction',        @mapTrainingCostOneLayer}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
-          {'hiddenSize',          100};
+          {'hiddenSize',          200};
           {'maxIter',             500};    % maximum number of minFunc iterations on a batch
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder

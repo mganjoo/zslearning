@@ -6,3 +6,4 @@ map-*
 gauss_*
 anomaly-*
 parameter_archive
+out-*.log
