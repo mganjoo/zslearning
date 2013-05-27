@@ -44,7 +44,6 @@ trainParams.f = @tanh;             % function to use in the neural network activ
 trainParams.f_prime = @tanh_prime; % derivative of f
 trainParams.doEvaluate = false;
 trainParams.testFilePrefix = 'zeroshot_test_batch';
-trainParams.autoencMult = trainParams.autoencMultStart;
 
 trainParams.imageColumnSize = size(X, 1);
 
