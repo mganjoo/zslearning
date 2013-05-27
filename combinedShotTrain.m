@@ -78,8 +78,8 @@ for kk = 1:trainParams.outerRetrainCount
         % Subsample from remaining
         otherIdxs = intersect(nonZeroShotIdx, trainParams.sortedOutlierIdxs(trainParams.retrainCount*trainParams.numTopOutliers+1:end));
         sample = randi(length(otherIdxs), 1, trainParams.numSampledNonZeroShot);
-        sampleX = sampleX(:, sample);
-        sampleY = sampleY(sample);
+        sampleX = X(:, sample);
+        sampleY = Y(sample);
 
         XX = [outlierX sampleX];
         YY = [outlierY sampleY];
