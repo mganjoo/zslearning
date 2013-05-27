@@ -64,7 +64,7 @@ disp('Training softmax features');
 
 % Cross validate
 cvParams = {{'lambda',              [1E-3, 1E-4]};   % regularization parameter
-            {'numPretrainIter',     [20, 30]};
+            {'numPretrainIter',     [100, 150]};
             {'numSampleIter',       [2, 3]};
             {'numTopOutliers',      [10, 15, 50]};
             {'numSampledNonZeroShot', [5, 10]};
@@ -94,12 +94,15 @@ for kk = 1:length(combinations);
     disp(['Unseen accuracy: ' num2str(unseenAccuracy)]);
     if seenAccuracy > bestSeenAcc
         bestSeenAccIdx = kk;
+        bestSeenAcc = seenAccuracy;
     end
     if unseenAccuracy > bestUnseenAcc
         bestUnseenAccIdx = kk;
+        bestUnseenAcc = unseenAccuracy;
     end
     if results.accuracy > bestOverallAcc
         bestAccIdx = kk;
+        bestOverallAcc = results.accuracy;
     end
 end
 

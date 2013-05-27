@@ -11,10 +11,10 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'costFunction',        @softmaxCost}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'lambda',              1E-3};   % regularization parameter
-          {'numPretrainIter',     20};
+          {'numPretrainIter',     100};
           {'numSampleIter',       2};
-          {'numTopOutliers',      10};
-          {'numSampledNonZeroShot', 5};
+          {'numTopOutliers',      15};
+          {'numSampledNonZeroShot', 10};
           {'retrainCount',        20};
           {'outerRetrainCount',   20};
           
