@@ -64,9 +64,9 @@ disp('Training softmax features');
 
 % Cross validate
 cvParams = {{'lambda',              [1E-3, 1E-4]};   % regularization parameter
-            {'numPretrainIter',     [20, 30, 40]};
+            {'numPretrainIter',     [20, 30]};
             {'numSampleIter',       [2, 3]};
-            {'numTopOutliers',      [10, 15]};
+            {'numTopOutliers',      [10, 15, 50]};
             {'numSampledNonZeroShot', [5, 10]};
             {'retrainCount',        [20, 30]};
             {'outerRetrainCount',   [20, 30]};

@@ -76,10 +76,10 @@ for kk = 1:trainParams.outerRetrainCount
         outlierX = X(:, pickedOutlierIdxs);
         outlierY = guessedZeroLabels(pickedOutlierIdxs);
         % Subsample from remaining
-        otherIdxs = trainParams.sortedOutlierIdxs(trainParams.retrainCount*trainParams.numTopOutliers+1:end);
+        otherIdxs = intersect(nonZeroShotIdx, trainParams.sortedOutlierIdxs(trainParams.retrainCount*trainParams.numTopOutliers+1:end));
         sample = randi(length(otherIdxs), 1, trainParams.numSampledNonZeroShot);
-        sampleX = X(:, sample);
-        sampleY = Y(sample);
+        sampleX = sampleX(:, sample);
+        sampleY = sampleY(sample);
 
         XX = [outlierX sampleX];
         YY = [outlierY sampleY];
