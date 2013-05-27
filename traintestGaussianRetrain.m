@@ -86,19 +86,13 @@ for kk = 1:length(combinations);
 
     % Evaluate our trained softmax
     results = softmaxDoEvaluate( Xvalidate, Yvalidate, label_names, thetaSoftmax, trainParamsSoftmax, true );
-    truePos = diag(results.confusion); % true positives, column vector
-    numUnseen = sum(arrayfun(@(x) nnz(Yvalidate == x), zeroCategories));
-    unseenAccuracy = sum(truePos(zeroCategories)) / numUnseen;
-    seenAccuracy = (sum(truePos) - sum(truePos(zeroCategories))) / (length(Yvalidate) - numUnseen);
-    disp(['Seen accuracy: ' num2str(seenAccuracy)]);
-    disp(['Unseen accuracy: ' num2str(unseenAccuracy)]);
-    if seenAccuracy > bestSeenAcc
+    if results.seenAccuracy > bestSeenAcc
         bestSeenAccIdx = kk;
-        bestSeenAcc = seenAccuracy;
+        bestSeenAcc = results.seenAccuracy;
     end
-    if unseenAccuracy > bestUnseenAcc
+    if results.unseenAccuracy > bestUnseenAcc
         bestUnseenAccIdx = kk;
-        bestUnseenAcc = unseenAccuracy;
+        bestUnseenAcc = results.unseenAccuracy;
     end
     if results.accuracy > bestOverallAcc
         bestAccIdx = kk;
@@ -117,9 +111,4 @@ save(sprintf('%s/thetaSoftmax.mat', outputPath), 'thetaSoftmax', 'trainParamsSof
 fprintf('Best overall accuracy achieved with combination:\n');
 disp(trainParamsSoftmax);
 results = softmaxDoEvaluate( testX, testY, label_names, thetaSoftmax, trainParamsSoftmax, true );
-truePos = diag(results.confusion); % true positives, column vector
-numUnseen = sum(arrayfun(@(x) nnz(testY == x), zeroCategories));
-unseenAccuracy = sum(truePos(zeroCategories)) / numUnseen;
-seenAccuracy = (sum(truePos) - sum(truePos(zeroCategories))) / (length(testY) - numUnseen);
-disp(['Seen accuracy: ' num2str(seenAccuracy)]);
-disp(['Unseen accuracy: ' num2str(unseenAccuracy)]);
+

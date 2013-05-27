@@ -1,4 +1,4 @@
-function [ results ] = softmaxDoEvaluate( images, categories, categoryNames, theta, trainParams, doPrint )
+function [ results ] = softmaxDoEvaluate( images, categories, categoryNames, theta, trainParams, doPrint, zeroCategories )
 
 W = stack2param(theta, trainParams.decodeInfo);
 numCategories = length(categoryNames);
@@ -25,10 +25,20 @@ results.avgPrecision = mean(t(isfinite(t), :));
 t = truePos' ./ sum(confusion, 1);
 results.avgRecall = mean(t(:, isfinite(t)));
 
+if nargin > 6
+    numUnseen = sum(arrayfun(@(x) nnz(categories == x), zeroCategories));
+    results.unseenAccuracy = sum(truePos(zeroCategories)) / numUnseen;
+    results.seenAccuracy = (sum(truePos) - sum(truePos(zeroCategories))) / (length(categories) - numUnseen);
+end
+
 if doPrint == true
     disp(['Accuracy: ' num2str(results.accuracy)]);
     disp(['Averaged precision: ' num2str(results.avgPrecision)]);
     disp(['Averaged recall: ' num2str(results.avgRecall)]);
+    if nargin > 6
+        disp(['Seen accuracy: ' num2str(results.seenAccuracy)]);
+        disp(['Unseen accuracy: ' num2str(results.unseenAccuracy)]);
+    end
     displayConfusionMatrix(confusion, categoryNames);
 end
 
