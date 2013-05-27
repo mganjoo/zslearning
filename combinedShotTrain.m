@@ -18,11 +18,12 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
-          {'numPretrainIter',      5};
+          {'numPretrainIter',     20};
           {'numSampleIter',       2};
           {'numTopOutliers',      10};
           {'numSampledNonZeroShot', 5};
           {'retrainCount',        20};
+          {'outerRetrainCount',   20};
           
           % options
           {'batchFilePrefix',     'default_batch'};  % use this to choose different batch sets (common values: default_batch or mini_batch)
@@ -78,29 +79,32 @@ dataToUse.nonZeroCategories = nonZeroCategories;
 theta = trainParams.trainFunction(pretrainParams, dataToUse, theta);
 
 % Find top N outliers
-for i = 1:trainParams.retrainCount
-    fprintf('Iteration %d\n', i);
-    pickedOutlierIdxs = trainParams.sortedOutlierIdxs((i-1)*trainParams.numTopOutliers+1:i*trainParams.numTopOutliers);
-    outlierX = X(:, pickedOutlierIdxs);
-    outlierY = guessedZeroLabels(pickedOutlierIdxs);
-    % Subsample from remaining
-    otherIdxs = trainParams.sortedOutlierIdxs(trainParams.retrainCount*trainParams.numTopOutliers+1:end);
-    sample = randi(length(otherIdxs), 1, trainParams.numSampledNonZeroShot);
-    sampleX = X(:, sample);
-    sampleY = Y(sample);
-    
-    XX = [outlierX sampleX];
-    YY = [outlierY sampleY];
-    perm = randperm(length(YY));
-    XX = XX(:, perm);
-    YY = YY(:, perm);
+for kk = 1:trainParams.outerRetrainCount
+    fprintf('Outer iteration: %d\n', kk);
+    for i = 1:trainParams.retrainCount
+        fprintf('Iteration %d\n', i);
+        pickedOutlierIdxs = trainParams.sortedOutlierIdxs((i-1)*trainParams.numTopOutliers+1:i*trainParams.numTopOutliers);
+        outlierX = X(:, pickedOutlierIdxs);
+        outlierY = guessedZeroLabels(pickedOutlierIdxs);
+        % Subsample from remaining
+        otherIdxs = trainParams.sortedOutlierIdxs(trainParams.retrainCount*trainParams.numTopOutliers+1:end);
+        sample = randi(length(otherIdxs), 1, trainParams.numSampledNonZeroShot);
+        sampleX = X(:, sample);
+        sampleY = Y(sample);
 
-    sampleTrainParams = trainParams;
-    sampleTrainParams.maxIter = trainParams.numSampleIter;
-    dataToUse.imgs = XX;
-    dataToUse.categories = YY;
-    dataToUse.nonZeroCategories = nonZeroCategories;
-    theta = trainParams.trainFunction(sampleTrainParams, dataToUse, theta);
+        XX = [outlierX sampleX];
+        YY = [outlierY sampleY];
+        perm = randperm(length(YY));
+        XX = XX(:, perm);
+        YY = YY(:, perm);
+
+        sampleTrainParams = trainParams;
+        sampleTrainParams.maxIter = trainParams.numSampleIter;
+        dataToUse.imgs = XX;
+        dataToUse.categories = YY;
+        dataToUse.nonZeroCategories = nonZeroCategories;
+        theta = trainParams.trainFunction(sampleTrainParams, dataToUse, theta);
+    end
 end
 
 gtime = toc(globalStart);

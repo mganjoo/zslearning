@@ -65,4 +65,4 @@ trainParamsSoftmax.allCategories = 1:numCategories;
 save(sprintf('%s/thetaSoftmax.mat', outputPath), 'thetaSoftmax', 'trainParamSoftmax');
 
 % Evaluate our trained softmax
-softmaxDoEvaluate( testX, testY, label_names, thetaSoftmax, thetaParamsSoftmax, true );
+softmaxDoEvaluate( testX, testY, label_names, thetaSoftmax, trainParamsSoftmax, true );
