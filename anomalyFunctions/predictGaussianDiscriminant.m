@@ -1,4 +1,4 @@
-% outputs the probability that each image feature 
+% outputs the probability that each image feature is seen before
 function [logprobability] = predictGaussianDiscriminant(projectedImageFeatures, mu, sigma_elem, priors, deletedClasses)
 
 dim = size(mu, 1);
