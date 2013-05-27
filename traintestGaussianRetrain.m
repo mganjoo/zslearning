@@ -105,13 +105,14 @@ end
 
 % Rerun on best overall accuracy index
 trainParamsSoftmax = combinations(bestAccIdx);
-fprintf('Best overall accuracy achieved with combination:\n');
-disp(trainParamsSoftmax);
 trainParamsSoftmax.sortedOutlierIdxs = sortedOutlierIdxs;
 trainParamsSoftmax.nonZeroShotCategories = nonZeroCategories;
 trainParamsSoftmax.allCategories = 1:numCategories;
 [thetaSoftmax, trainParamsSoftmax] = combinedShotTrain(XoutlierTrain, YoutlierTrain, guessedZeroLabels, trainParamsSoftmax, label_names(nonZeroCategories));
-save(sprintf('%s/thetaSoftmax.mat', outputPath), 'thetaSoftmax', 'trainParamSoftmax');
+save(sprintf('%s/thetaSoftmax.mat', outputPath), 'thetaSoftmax', 'trainParamsSoftmax');
+
+fprintf('Best overall accuracy achieved with combination:\n');
+disp(trainParamsSoftmax);
 results = softmaxDoEvaluate( testX, testY, label_names, thetaSoftmax, trainParamsSoftmax, true );
 truePos = diag(results.confusion); % true positives, column vector
 numUnseen = sum(arrayfun(@(x) nnz(testY == x), zeroCategories));

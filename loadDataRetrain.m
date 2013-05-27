@@ -7,6 +7,7 @@ if not(exist('skipLoad','var')) || skipLoad == false
     load(['image_data/features/' dataset '/train.mat']);
     load(['image_data/features/' dataset '/test.mat']);
     load(['word_data/' wordset '/' dataset '/wordTable.mat']);
+    skipLoad = true;
 end
 
 if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, 'cifar106')
