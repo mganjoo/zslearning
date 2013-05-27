@@ -18,7 +18,7 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'maxPass',             1};      % maximum number of passes through training data
           {'disableAutoencoder',  true};   % whether to disable autoencoder
           {'maxAutoencIter',      50};     % maximum number of minFunc iterations on a batch
-          {'numPretainIter',      5};
+          {'numPretrainIter',      5};
           {'numSampleIter',       2};
           {'numTopOutliers',      10};
           {'numSampledNonZeroShot', 5};

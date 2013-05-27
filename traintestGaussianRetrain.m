@@ -44,7 +44,6 @@ if strcmp(fullParams.outlierModel, 'gaussian')
     disp('Training Gaussian classifier using Mixture of Gaussians');
     [mu, sigma, priors] = trainGaussianDiscriminant(mappedTrainImages, YmapTrain, numCategories, wordTable);
     [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminant(mappedOutlierImages, mu, sigma, priors, zeroCategories));
-    sortedOutlierIdxs = fliplr(sortedOutlierIdxs);
 elseif strcmp(fullParams.outlierModel, 'gaussianPdf')
     % Train Gaussian classifier
     disp('Training Gaussian classifier using Mixture of Gaussians PDF');
@@ -52,8 +51,6 @@ elseif strcmp(fullParams.outlierModel, 'gaussianPdf')
     [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminantMin(mappedOutlierImages, mu, sigma, priors, zeroCategories));
 elseif strcmp(fullParams.outlierModel, 'loop')
     disp('Training LoOP model');
-    resolution = fullParams.resolution - 1;
-    thresholds = 0:(1/resolution):1;
     knn = 20;
     bestLambdas = randi(4, 1, length(nonZeroCategories)) + 8;
     [ nplofAll, pdistAll ] = trainOutlierPriors(mappedTrainImages, YmapTrain, nonZeroCategories, numTrainMapPerCat, knn, bestLambdas);

@@ -89,7 +89,7 @@ if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, '
     YoutlierTrain = trainY(t2);
     Xvalidate = trainX(:, v);
     Yvalidate = trainY(v);
-    save(sprintf('%s/perm.mat', outputPath), 't', 'v');
+    save(sprintf('%s/perm.mat', outputPath), 't1', 't2', 'v');
 end
 
 fprintf('num map train: %d, num outlier train: %d, num valid: %d, num test: %d\n', length(YmapTrain), length(YoutlierTrain), length(Yvalidate), length(testY));
