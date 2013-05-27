@@ -18,6 +18,7 @@ for actual = 1:numCategories
 end
 
 truePos = diag(confusion); % true positives, column vector
+results.confusion = confusion;
 results.accuracy = sum(truePos) / numImages;
 t = truePos ./ sum(confusion, 2);
 results.avgPrecision = mean(t(isfinite(t), :));

@@ -21,13 +21,16 @@ end
 
 loadDataRetrain;
 
-disp('Training mapping function');
-% Train mapping function
-trainParams.imageDataset = fullParams.dataset;
-[theta, trainParams ] = fastTrain(XmapTrain, YmapTrain, trainParams, wordTable);
-save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
-% Get train accuracy
-mapDoEvaluate(XmapTrain, YmapTrain, label_names, label_names, wordTable, theta, trainParams, true);
+% disp('Training mapping function');
+% % Train mapping function
+% trainParams.imageDataset = fullParams.dataset;
+% [theta, trainParams ] = fastTrain(XmapTrain, YmapTrain, trainParams, wordTable);
+% save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
+% % Get train accuracy
+% mapDoEvaluate(XmapTrain, YmapTrain, label_names, label_names, wordTable, theta, trainParams, true);
+
+% We actually have saved theta and trainParams -- just use those for now
+% (TODO)
 
 % Now, train outlier model
 mappedOutlierImages = mapDoMap(XoutlierTrain, theta, trainParams);
@@ -58,11 +61,61 @@ elseif strcmp(fullParams.outlierModel, 'loop')
 end
 
 disp('Training softmax features');
+
+% Cross validate
+cvParams = {{'lambda',              [1E-3, 1E-4]};   % regularization parameter
+            {'numPretrainIter',     [20, 30, 40]};
+            {'numSampleIter',       [2, 3]};
+            {'numTopOutliers',      [10, 15]};
+            {'numSampledNonZeroShot', [5, 10]};
+            {'retrainCount',        [20, 30]};
+            {'outerRetrainCount',   [20, 30]};
+            };
+
+combinations = buildCvParams(cvParams);
+bestSeenAcc = 0;
+bestUnseenAcc = 0;
+bestOverallAcc = 0;
+for kk = 1:length(combinations);
+    trainParamsSoftmax = combinations(kk);
+    disp(trainParamsSoftmax);
+    trainParamsSoftmax.sortedOutlierIdxs = sortedOutlierIdxs;
+    trainParamsSoftmax.nonZeroShotCategories = nonZeroCategories;
+    trainParamsSoftmax.allCategories = 1:numCategories;
+    [thetaSoftmax, trainParamsSoftmax] = combinedShotTrain(XoutlierTrain, YoutlierTrain, guessedZeroLabels, trainParamsSoftmax, label_names(nonZeroCategories));
+
+    % Evaluate our trained softmax
+    results = softmaxDoEvaluate( Xvalidate, Yvalidate, label_names, thetaSoftmax, trainParamsSoftmax, true );
+    truePos = diag(results.confusion); % true positives, column vector
+    numUnseen = sum(arrayfun(@(x) nnz(Yvalidate == x), zeroCategories));
+    unseenAccuracy = sum(truePos(zeroCategories)) / numUnseen;
+    seenAccuracy = (sum(truePos) - sum(truePos(zeroCategories))) / (length(Yvalidate) - numUnseen);
+    disp(['Seen accuracy: ' num2str(seenAccuracy)]);
+    disp(['Unseen accuracy: ' num2str(unseenAccuracy)]);
+    if seenAccuracy > bestSeenAcc
+        bestSeenAccIdx = kk;
+    end
+    if unseenAccuracy > bestUnseenAcc
+        bestUnseenAccIdx = kk;
+    end
+    if results.accuracy > bestOverallAcc
+        bestAccIdx = kk;
+    end
+end
+
+% Rerun on best overall accuracy index
+trainParamsSoftmax = combinations(bestAccIdx);
+fprintf('Best overall accuracy achieved with combination:\n');
+disp(trainParamsSoftmax);
 trainParamsSoftmax.sortedOutlierIdxs = sortedOutlierIdxs;
 trainParamsSoftmax.nonZeroShotCategories = nonZeroCategories;
 trainParamsSoftmax.allCategories = 1:numCategories;
 [thetaSoftmax, trainParamsSoftmax] = combinedShotTrain(XoutlierTrain, YoutlierTrain, guessedZeroLabels, trainParamsSoftmax, label_names(nonZeroCategories));
 save(sprintf('%s/thetaSoftmax.mat', outputPath), 'thetaSoftmax', 'trainParamSoftmax');
-
-% Evaluate our trained softmax
-softmaxDoEvaluate( testX, testY, label_names, thetaSoftmax, trainParamsSoftmax, true );
+results = softmaxDoEvaluate( testX, testY, label_names, thetaSoftmax, trainParamsSoftmax, true );
+truePos = diag(results.confusion); % true positives, column vector
+numUnseen = sum(arrayfun(@(x) nnz(testY == x), zeroCategories));
+unseenAccuracy = sum(truePos(zeroCategories)) / numUnseen;
+seenAccuracy = (sum(truePos) - sum(truePos(zeroCategories))) / (length(testY) - numUnseen);
+disp(['Seen accuracy: ' num2str(seenAccuracy)]);
+disp(['Unseen accuracy: ' num2str(unseenAccuracy)]);
