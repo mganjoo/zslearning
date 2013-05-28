@@ -1,4 +1,4 @@
-function [theta, trainParams] = combinedShotTrain(X, Y, guessedZeroLabels, trainParams, categoryNames)
+function [theta, trainParams] = combinedShotTrain(X, Y, guessedZeroLabels, trainParams)
 
 addpath toolbox/;
 addpath toolbox/minFunc/;

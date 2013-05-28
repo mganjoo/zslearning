@@ -82,10 +82,10 @@ for kk = 1:length(combinations);
     trainParamsSoftmax.sortedOutlierIdxs = sortedOutlierIdxs;
     trainParamsSoftmax.nonZeroShotCategories = nonZeroCategories;
     trainParamsSoftmax.allCategories = 1:numCategories;
-    [thetaSoftmax, trainParamsSoftmax] = combinedShotTrain(XoutlierTrain, YoutlierTrain, guessedZeroLabels, trainParamsSoftmax, label_names(nonZeroCategories));
+    [thetaSoftmax, trainParamsSoftmax] = combinedShotTrain(XoutlierTrain, YoutlierTrain, guessedZeroLabels, trainParamsSoftmax);
 
     % Evaluate our trained softmax
-    results = softmaxDoEvaluate( Xvalidate, Yvalidate, label_names, thetaSoftmax, trainParamsSoftmax, true );
+    results = softmaxDoEvaluate( Xvalidate, Yvalidate, label_names, thetaSoftmax, trainParamsSoftmax, true, zeroCategories );
     if results.seenAccuracy > bestSeenAcc
         bestSeenAccIdx = kk;
         bestSeenAcc = results.seenAccuracy;
