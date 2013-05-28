@@ -105,10 +105,10 @@ trainParamsSoftmax = combinations(bestAccIdx);
 trainParamsSoftmax.sortedOutlierIdxs = sortedOutlierIdxs;
 trainParamsSoftmax.nonZeroShotCategories = nonZeroCategories;
 trainParamsSoftmax.allCategories = 1:numCategories;
-[thetaSoftmax, trainParamsSoftmax] = combinedShotTrain(XoutlierTrain, YoutlierTrain, guessedZeroLabels, trainParamsSoftmax, label_names(nonZeroCategories));
+[thetaSoftmax, trainParamsSoftmax] = combinedShotTrain(XoutlierTrain, YoutlierTrain, guessedZeroLabels, trainParamsSoftmax );
 save(sprintf('%s/thetaSoftmax.mat', outputPath), 'thetaSoftmax', 'trainParamsSoftmax');
 
 fprintf('Best overall accuracy achieved with combination:\n');
 disp(trainParamsSoftmax);
-results = softmaxDoEvaluate( testX, testY, label_names, thetaSoftmax, trainParamsSoftmax, true );
+results = softmaxDoEvaluate( testX, testY, label_names, thetaSoftmax, trainParamsSoftmax, true, zeroCategories );
 
