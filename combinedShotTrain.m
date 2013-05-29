@@ -11,7 +11,9 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'costFunction',        @softmaxCost}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
           {'lambda',              1E-3};   % regularization parameter
-          {'numPretrainIter',     100};
+          {'lambdaOld',           1E-3};   % regularization parameter
+          {'lambdaNew',           1E-3};   % regularization parameter
+          {'numPretrainIter',     75};
           {'numSampleIter',       2};
           {'numTopOutliers',      15};
           {'numSampledNonZeroShot', 10};
@@ -68,6 +70,10 @@ dataToUse.nonZeroCategories = nonZeroCategories;
 theta = trainParams.trainFunction(pretrainParams, dataToUse, theta);
 
 % Find top N outliers
+sampleTrainParams = trainParams;
+sampleTrainParams.thetaOld = theta;
+sampleTrainParams.outputsToChange = zeroCategories;
+sampleTrainParams.costFunction = @softmaxCostMinimizeSeenChange;
 for kk = 1:trainParams.outerRetrainCount
     fprintf('Outer iteration: %d\n', kk);
     for i = 1:trainParams.retrainCount
@@ -87,7 +93,6 @@ for kk = 1:trainParams.outerRetrainCount
         XX = XX(:, perm);
         YY = YY(:, perm);
 
-        sampleTrainParams = trainParams;
         sampleTrainParams.maxIter = trainParams.numSampleIter;
         dataToUse.imgs = XX;
         dataToUse.categories = YY;
