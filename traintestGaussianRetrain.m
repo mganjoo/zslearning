@@ -65,8 +65,8 @@ end
 if fullParams.oracle
     % Set up oracle prediction
     sortedOutlierIdxs = cell2mat(arrayfun(@(x) find(YoutlierTrain == x), [zeroCategories nonZeroCategories], 'UniformOutput', false));
-    nonZeros = find(ismember(Y, nonZeroCategories));
-    guessedZeroLabels = Y;
+    nonZeros = find(ismember(YoutlierTrain, nonZeroCategories));
+    guessedZeroLabels = YoutlierTrain;
     guessedZeroLabels(nonZeros) = zeroCategories(randi(length(zeroCategories), 1, length(nonZeros)));
 end
 
@@ -87,8 +87,8 @@ cvParams = {{'lambda',              [1E-2, 1E-3, 1E-4]};   % regularization para
             {'outerRetrainCount',   [5, 10]};
             };
         
-if isfield('fullParams', 'fixedCvParams')
-    cvParams = fixedCvParams;
+if isfield(fullParams, 'fixedCvParams')
+    cvParams = fullParams.fixedCvParams;
 end
 
 combinations = buildCvParams(cvParams);
