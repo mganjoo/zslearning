@@ -57,17 +57,18 @@ if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, '
 
     numTrainNonZeroShot = (numCategories - length(zeroCategories)) / numCategories * TOTAL_NUM_TRAIN;
     numTrainTotalPerCat = numTrainNonZeroShot / length(nonZeroCategories);
-    numTrainMapPerCat = floor(0.80 * numTrainTotalPerCat);
-    numTrainOutlierPerCat = floor(0.15 * numTrainTotalPerCat);
-    numValidatePerCat = numTrainTotalPerCat - numTrainMapPerCat - numTrainOutlierPerCat;
+    numTrainMapPerCat = floor(0.85 * numTrainTotalPerCat);
+    numTrainOutlierPerCat = floor(0.85 * numTrainTotalPerCat);
+%     numTrainOutlierPerCat = floor(0.15 * numTrainTotalPerCat);
+    numValidatePerCat = numTrainTotalPerCat - numTrainMapPerCat;
     t1 = zeros(1, numTrainMapPerCat * length(nonZeroCategories));
     t2 = zeros(1, numTrainOutlierPerCat * length(nonZeroCategories));
     v = zeros(1, numValidatePerCat * numCategories);
     for i = 1:length(nonZeroCategories)
         [ ~, temp ] = find(trainY == nonZeroCategories(i));
         t1((i-1)*numTrainMapPerCat+1:i*numTrainMapPerCat) = temp(1:numTrainMapPerCat);
-        t2((i-1)*numTrainOutlierPerCat+1:i*numTrainOutlierPerCat) = temp(numTrainMapPerCat+1:numTrainMapPerCat+numTrainOutlierPerCat);
-        v((i-1)*numValidatePerCat+1:i*numValidatePerCat) = temp(numTrainMapPerCat+numTrainOutlierPerCat+1:numTrainMapPerCat+numTrainOutlierPerCat+numValidatePerCat);
+        t2((i-1)*numTrainOutlierPerCat+1:i*numTrainOutlierPerCat) = temp(1:numTrainOutlierPerCat);
+        v((i-1)*numValidatePerCat+1:i*numValidatePerCat) = temp(numTrainMapPerCat+1:numTrainMapPerCat+numValidatePerCat);
     end
     for i = 1:length(zeroCategories)
         [ ~, temp ] = find(trainY == zeroCategories(i));
