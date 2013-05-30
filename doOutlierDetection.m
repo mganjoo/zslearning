@@ -13,7 +13,7 @@ if params.topN ~= -1
     for i = 1:length(nonZeroCategories)
         tDist = slmetric_pw(seenWordTable(:, i), mappedTrainImages(:, YmapTrain == nonZeroCategories(i)), 'eucdist');
         [~, tt ] = sort(tDist);
-        topNeighbors(i) = tt(1:params.topN);
+        topNeighbors(i,:) = tt(1:params.topN);
     end
 end
 
