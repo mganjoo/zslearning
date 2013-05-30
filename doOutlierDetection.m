@@ -38,7 +38,7 @@ else
 end
 
 if params.topN ~= -1
-    allIdxs = reshape(topNeighbors(:, 1:params.topN), 1, []);
+    allIdxs = unique(topNeighbors(:, 1:params.topN));
     mappedOutlierImages1 = mappedOutlierImages1(:, allIdxs);
     mappedTrainImages1 = mappedTrainImages1(:, allIdxs);
     YmapTrain1 = YmapTrain1(allIdxs);
