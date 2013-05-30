@@ -9,7 +9,7 @@ fields = {{'dataset',       'cifar10'};
           {'outlierModel',  'gaussian'};
           {'resolution',    11};
           {'outlierOriginalSpace', true};
-          {'unseenMethod', 'sofmtax'};
+          {'unseenMethod', 'softmax'};
           {'loadOldParams', true};
           {'paramsPath', 'gauss_cifar10_acl_cat_truck_backup'};
           {'oracle',        false};
