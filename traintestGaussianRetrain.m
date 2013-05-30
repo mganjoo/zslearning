@@ -26,7 +26,7 @@ end
 
 loadDataRetrain;
 
-if fullParams.loadOldParams
+if ~fullParams.loadOldParams
     disp('Training mapping function');
     % Train mapping function
     trainParams.imageDataset = fullParams.dataset;
