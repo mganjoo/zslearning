@@ -43,7 +43,7 @@ if params.topN ~= -1
     mappedTrainImages1 = mappedTrainImages1(:, allIdxs);
     YmapTrain1 = YmapTrain1(allIdxs);
 else
-    [~, t] = min(find(@(i) sum(YmapTrain1 == nonZeroCategories(i)), 1:length(nonZeroCategories)));
+    [~, t] = min(arrayfun(@(i) sum(YmapTrain1 == nonZeroCategories(i)), 1:length(nonZeroCategories)));
     topNeighbors = find(YmapTrain1 == t);
 end
     
