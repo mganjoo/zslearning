@@ -1,4 +1,4 @@
-function [ sortedOutlierIdxs ] = doOutlierDetection(method, XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, topN, zeroCategories)
+function [ sortedOutlierIdxs ] = doOutlierDetection(method, XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, params, zeroCategories)
 
 numCategories = size(wordTable, 2);
 nonZeroCategories = setdiff(1:numCategories, zeroCategories);
@@ -7,8 +7,8 @@ mappedOutlierImages = mapDoMap(XoutlierTrain, theta, trainParams);
 mappedTrainImages = mapDoMap(XmapTrain, theta, trainParams);
 
 % Find top N neighbors for each category
-if topN ~= -1
-    topNeighbors = zeros(length(nonZeroCategories), topN);
+if params.topN ~= -1
+    topNeighbors = zeros(length(nonZeroCategories), params.topN);
     seenWordTable = wordTable(:, nonZeroCategories);
     for i = 1:length(nonZeroCategories)
         tDist = slmetric_pw(seenWordTable(:, i), mappedTrainImages(:, YmapTrain == nonZeroCategories(i)), 'eucdist');
@@ -17,16 +17,16 @@ if topN ~= -1
 end
 
 % Map back to original space if needed
-if fullParams.outlierOriginalSpace
+if params.outlierOriginalSpace
     mappedOutlierImages1 = XoutlierTrain;
     mappedTrainImages1 = XmapTrain;
     YmapTrain1 = YmapTrain;
     wordTable1 = zeros(size(mappedTrainImages1, 1), numCategories);
     for i = 1:length(nonZeroCategories)
-        if topN == -1
+        if params.topN == -1
             wordTable1(:, i) = mean(mappedTrainImages1(:, YmapTrain1 == nonZeroCategories(i)), 2);
         else
-            wordTable1(:, i) = mean(mappedTrainImages1(:, topNeighbors(i, 1:topN)), 2);
+            wordTable1(:, i) = mean(mappedTrainImages1(:, topNeighbors(i, 1:params.topN)), 2);
         end
     end
 else
@@ -36,8 +36,8 @@ else
     wordTable1 = wordTable;
 end
 
-if topN ~= -1
-    allIdxs = reshape(topNeighbors(:, 1:topN), 1, []);
+if params.topN ~= -1
+    allIdxs = reshape(topNeighbors(:, 1:params.topN), 1, []);
     mappedOutlierImages1 = mappedOutlierImages1(:, allIdxs);
     mappedTrainImages1 = mappedTrainImages1(:, allIdxs);
     YmapTrain1 = YmapTrain1(allIdxs);

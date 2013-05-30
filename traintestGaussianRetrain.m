@@ -54,7 +54,7 @@ elseif strcmp(fullParams.unseenMethod, 'softmax')
     guessedZeroLabels = zeroCategories(softmaxPredict( mappedOutlierImages, thetaUnseen, trainParamsUnseen ));
 end
 
-sortedOutlierIdxs = doOutlierDetection(fullParams.outlierModel, XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, fullParams.topN, zeroCategories);
+sortedOutlierIdxs = doOutlierDetection(fullParams.outlierModel, XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, fullParams, zeroCategories);
 
 if fullParams.oracle
     % Set up oracle prediction
