@@ -8,6 +8,7 @@ fields = {{'dataset',       'cifar10'};
           {'wordset',       'acl'};
           {'outlierModel',  'gaussian'};
           {'resolution',    11};
+          {'oracle',        false};
 };
 
 % Load existing model parameters, if they exist
@@ -51,28 +52,44 @@ elseif strcmp(fullParams.outlierModel, 'gaussianPdf')
     % Train Gaussian classifier
     disp('Training Gaussian classifier using Mixture of Gaussians PDF');
     [mu, sigma, priors] = trainGaussianDiscriminant(mappedTrainImages, YmapTrain, numCategories, wordTable);
-    [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminantMin(mappedOutlierImages, mu, sigma, priors, zeroCategories));
+    [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminantMin(mappedOutlierImages, mu, sigma, zeroCategories));
 elseif strcmp(fullParams.outlierModel, 'loop')
     disp('Training LoOP model');
     knn = 20;
-    bestLambdas = randi(4, 1, length(nonZeroCategories)) + 8;
+    bestLambdas = [13, 10, 13, 12, 10, 10, 13, 10];
+%     bestLambdas = randi(4, 1, length(nonZeroCategories)) + 8;
     [ nplofAll, pdistAll ] = trainOutlierPriors(mappedTrainImages, YmapTrain, nonZeroCategories, numTrainMapPerCat, knn, bestLambdas);
     [~, sortedOutlierIdxs] = sort(calcOutlierPriors(mappedOutlierImages, mappedTrainImages, YmapTrain, numTrainMapPerCat, nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll ), 'descend');
 end
 
+if fullParams.oracle
+    % Set up oracle prediction
+    sortedOutlierIdxs = cell2mat(arrayfun(@(x) find(YoutlierTrain == x), [zeroCategories nonZeroCategories], 'UniformOutput', false));
+    nonZeros = find(ismember(Y, nonZeroCategories));
+    guessedZeroLabels = Y;
+    guessedZeroLabels(nonZeros) = zeroCategories(randi(length(zeroCategories), 1, length(nonZeros)));
+end
+
+numNotOutliers = (1 - sum(ismember(YoutlierTrain(sortedOutlierIdxs(1:100)), zeroCategories)) / 100);
+fprintf('%d of the top 100 predicted outliers are not actually outliers.\n', numNotOutliers);
+
 disp('Training softmax features');
 
 % Cross validate
-cvParams = {{'lambda',              [1E-3, 1E-4, 1E-5]};   % regularization parameter
-            {'lambdaOld',           [1E-3]};   % regularization parameter for seen weights during change
+cvParams = {{'lambda',              [1E-2, 1E-3, 1E-4]};   % regularization parameter
+            {'lambdaOld',           [1, 1E-1]};   % regularization parameter for seen weights during change
             {'lambdaNew',           [1E-3]};   % regularization parameter for unseen weights during change
-            {'numPretrainIter',     [75, 100]};
+            {'numPretrainIter',     [100, 150]};
             {'numSampleIter',       [2, 3]};
-            {'numTopOutliers',      [5, 10, 15]};
-            {'numSampledNonZeroShot', [5, 10]};
-            {'retrainCount',        [10, 20]};
+            {'numTopOutliers',      [15, 20, 40]};
+            {'numSampledNonZeroShot', [2, 5, 10]};
+            {'retrainCount',        [5, 10, 20]};
             {'outerRetrainCount',   [5, 10]};
             };
+        
+if isfield('fullParams', 'fixedCvParams')
+    cvParams = fixedCvParams;
+end
 
 combinations = buildCvParams(cvParams);
 bestSeenAcc = 0;

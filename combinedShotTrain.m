@@ -63,7 +63,7 @@ globalStart = tic;
 % Pretrain softmax
 pretrainParams = trainParams;
 pretrainParams.maxIter = trainParams.numPretrainIter;
-nonZeroShotIdx = ismember(Y, nonZeroCategories);
+nonZeroShotIdx = find(ismember(Y, nonZeroCategories));
 dataToUse.imgs = X(:, nonZeroShotIdx);
 dataToUse.categories = Y(nonZeroShotIdx);
 dataToUse.nonZeroCategories = nonZeroCategories;
