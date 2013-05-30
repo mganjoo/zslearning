@@ -8,6 +8,10 @@ fields = {{'dataset',       'cifar10'};
           {'wordset',       'acl'};
           {'outlierModel',  'gaussian'};
           {'resolution',    11};
+          {'outlierOriginalSpace', true};
+          {'unseenMethod', 'sofmtax'};
+          {'loadOldParams', true};
+          {'paramsPath', 'gauss_cifar10_acl_cat_truck_backup'};
           {'oracle',        false};
 };
 
@@ -22,30 +26,46 @@ end
 
 loadDataRetrain;
 
-% disp('Training mapping function');
-% % Train mapping function
-% trainParams.imageDataset = fullParams.dataset;
-% [theta, trainParams ] = fastTrain(XmapTrain, YmapTrain, trainParams, wordTable);
-% save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
-% % Get train accuracy
-% mapDoEvaluate(XmapTrain, YmapTrain, label_names, label_names, wordTable, theta, trainParams, true);
-
-% We actually have saved theta and trainParams -- just use those for now
-% (TODO)
+if fullParams.loadOldParams
+    disp('Training mapping function');
+    % Train mapping function
+    trainParams.imageDataset = fullParams.dataset;
+    [theta, trainParams ] = fastTrain(XmapTrain, YmapTrain, trainParams, wordTable);
+    save(sprintf('%s/theta.mat', outputPath), 'theta', 'trainParams');
+    % Get train accuracy
+    mapDoEvaluate(XmapTrain, YmapTrain, label_names, label_names, wordTable, theta, trainParams, true);
+else
+    load([fullParams.paramsPath '/theta.mat']);
+end
 
 % Now, train outlier model
 mappedOutlierImages = mapDoMap(XoutlierTrain, theta, trainParams);
-mappedTrainImages = mapDoMap(XmapTrain, theta, trainParams);
+if fullParams.outlierOriginalSpace
+    mappedTrainImages = XmapTrain;
+else
+    mappedTrainImages = mapDoMap(XmapTrain, theta, trainParams);
+end
 
 % Find the predictions for images assuming they're all zero-shot
-unseenWordTable = wordTable(:, zeroCategories);
-tDist = slmetric_pw(unseenWordTable, mappedOutlierImages, 'eucdist');
-[~, tGuessedCategories ] = min(tDist);
-guessedZeroLabels = zeroCategories(tGuessedCategories);
+if strcmp(fullParams.unseenMethod, 'map')
+    unseenWordTable = wordTable(:, zeroCategories);
+    tDist = slmetric_pw(unseenWordTable, mappedOutlierImages, 'eucdist');
+    [~, tGuessedCategories ] = min(tDist);
+    guessedZeroLabels = zeroCategories(tGuessedCategories);
+elseif strcmp(fullParams.unseenMethod, 'softmax')
+    load([fullParams.paramsPath '/thetaUnseenSoftmax.mat']);
+    guessedZeroLabels = zeroCategories(softmaxPredict( mappedOutlierImages, thetaUnseen, trainParamsUnseen, zeroCategories ));
+end
 
 if strcmp(fullParams.outlierModel, 'gaussian')
     % Train Gaussian classifier
     disp('Training Gaussian classifier using Mixture of Gaussians');
+    if fullParams.outlierOriginalSpace
+        wordTable = zeros(size(mappedTrainImages, 1), numCategories);
+        for i = 1:length(nonZeroCategories)
+            wordTable(:, i) = mean(mappedTrainImages(:, YmapTrain == nonZeroCategories(i)), 2);
+        end
+    end
     [mu, sigma, priors] = trainGaussianDiscriminant(mappedTrainImages, YmapTrain, numCategories, wordTable);
     [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminant(mappedOutlierImages, mu, sigma, priors, zeroCategories));
 elseif strcmp(fullParams.outlierModel, 'gaussianPdf')
