@@ -7,8 +7,8 @@ mappedOutlierImages = mapDoMap(XoutlierTrain, theta, trainParams);
 mappedTrainImages = mapDoMap(XmapTrain, theta, trainParams);
 
 % Find top N neighbors for each category
-if fullParams.topN ~= -1
-    topNeighbors = zeros(length(nonZeroCategories), fullParams.topN);
+if topN ~= -1
+    topNeighbors = zeros(length(nonZeroCategories), topN);
     seenWordTable = wordTable(:, nonZeroCategories);
     for i = 1:length(nonZeroCategories)
         tDist = slmetric_pw(seenWordTable(:, i), mappedTrainImages(:, YmapTrain == nonZeroCategories(i)), 'eucdist');
@@ -23,10 +23,10 @@ if fullParams.outlierOriginalSpace
     YmapTrain1 = YmapTrain;
     wordTable1 = zeros(size(mappedTrainImages1, 1), numCategories);
     for i = 1:length(nonZeroCategories)
-        if fullParams.topN == -1
+        if topN == -1
             wordTable1(:, i) = mean(mappedTrainImages1(:, YmapTrain1 == nonZeroCategories(i)), 2);
         else
-            wordTable1(:, i) = mean(mappedTrainImages1(:, topNeighbors(i, 1:fullParams.topN)), 2);
+            wordTable1(:, i) = mean(mappedTrainImages1(:, topNeighbors(i, 1:topN)), 2);
         end
     end
 else
@@ -36,8 +36,8 @@ else
     wordTable1 = wordTable;
 end
 
-if fullParams.topN ~= -1
-    allIdxs = reshape(topNeighbors(:, 1:fullParams.topN), 1, []);
+if topN ~= -1
+    allIdxs = reshape(topNeighbors(:, 1:topN), 1, []);
     mappedOutlierImages1 = mappedOutlierImages1(:, allIdxs);
     mappedTrainImages1 = mappedTrainImages1(:, allIdxs);
     YmapTrain1 = YmapTrain1(allIdxs);
