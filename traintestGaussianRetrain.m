@@ -11,7 +11,7 @@ fields = {{'dataset',       'cifar10'};
           {'outlierOriginalSpace', true};
           {'unseenMethod', 'softmax'};
           {'loadOldParams', true};
-          {'topN',          100};
+          {'topN',          200}; % set to -1 to disable
           {'paramsPath', 'gauss_cifar10_acl_cat_truck_backup'};
           {'oracle',        false};
 };
@@ -54,45 +54,7 @@ elseif strcmp(fullParams.unseenMethod, 'softmax')
     guessedZeroLabels = zeroCategories(softmaxPredict( mappedOutlierImages, thetaUnseen, trainParamsUnseen ));
 end
 
-% Find top N neighbors for each category
-topNeighbors = zeros(length(nonZeroCategories), fullParams.topN);
-for i = 1:length(nonZeroCategories)
-    seenWordTable = wordTable(:, zeroCategories);
-    tDist = slmetric_pw(seenWordTable, mappedTrainImages, 'eucdist');
-    [~, sortedIdxs ] = sort(tDist);
-    topNeighbors(i, :) = sortedIdxs(1:fullParams.topN);
-end
-
-% Map back to original space if needed
-if fullParams.outlierOriginalSpace
-    mappedOutlierImages = XoutlierTrain;
-    mappedTrainImages = XmapTrain;
-    wordTable1 = zeros(size(mappedTrainImages, 1), numCategories);
-    for i = 1:length(nonZeroCategories)
-        wordTable1(:, i) = mean(mappedTrainImages(:, topNeighbors(i,:)), 2);
-    end
-else
-    wordTable1 = wordTable;
-end
-
-if strcmp(fullParams.outlierModel, 'gaussian')
-    % Train Gaussian classifier
-    disp('Training Gaussian classifier using Mixture of Gaussians');
-    [mu, sigma, priors] = trainGaussianDiscriminant(mappedTrainImages, YmapTrain, numCategories, wordTable1);
-    [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminant(mappedOutlierImages, mu, sigma, priors, zeroCategories));
-elseif strcmp(fullParams.outlierModel, 'gaussianPdf')
-    % Train Gaussian classifier
-    disp('Training Gaussian classifier using Mixture of Gaussians PDF');
-    [mu, sigma, priors] = trainGaussianDiscriminant(mappedTrainImages, YmapTrain, numCategories, wordTable1);
-    [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminantMin(mappedOutlierImages, mu, sigma, zeroCategories));
-elseif strcmp(fullParams.outlierModel, 'loop')
-    disp('Training LoOP model');
-    knn = 20;
-    bestLambdas = [13, 10, 13, 12, 10, 10, 13, 10];
-%     bestLambdas = randi(4, 1, length(nonZeroCategories)) + 8;
-    [ nplofAll, pdistAll ] = trainOutlierPriors(mappedTrainImages(:, topNeighbors(:)), YmapTrain(topNeighbors(:)), nonZeroCategories, size(topNeighbors, 2), knn, bestLambdas);
-    [~, sortedOutlierIdxs] = sort(calcOutlierPriors(mappedOutlierImages, mappedTrainImages(:, topNeighbors(:)), YmapTrain(topNeigbhors(:)), size(topNeighbors, 2), nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll ), 'descend');
-end
+sortedOutlierIdxs = doOutlierDetection(fullParams.outlierModel, XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, fullParams.topN, zeroCategories);
 
 if fullParams.oracle
     % Set up oracle prediction
