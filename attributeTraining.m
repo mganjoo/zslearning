@@ -15,3 +15,11 @@ load('attribute_learning/attribute_data.mat');
 trainParams = struct;
 [thetas, fullTrainParams] = trainAttributes(X, Y, attributes, assignments, trainParams);
 
+load('word_data/acl/cifar10/wordTable.mat', 'label_names');
+
+allCategories = 1:10;
+zeroCategories = [4, 10];
+nonZeroCategories = setdiff(allCategories, zeroCategories);
+
+evaluateAttributes(testX, testY, thetas, fullTrainParams, ...
+    assignments, zeroCategories, nonZeroCategories, label_names, true);
