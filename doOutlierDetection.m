@@ -1,4 +1,4 @@
-function [ sortedOutlierIdxs ] = doOutlierDetection(method, XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, params, zeroCategories)
+function [ sortedOutlierIdxs, returnedParams ] = doOutlierDetection(method, XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, params, zeroCategories)
 
 numCategories = size(wordTable, 2);
 nonZeroCategories = setdiff(1:numCategories, zeroCategories);
@@ -51,11 +51,17 @@ if strcmp(method, 'gaussian')
     disp('Training Gaussian classifier using Mixture of Gaussians');
     [mu, sigma, priors] = trainGaussianDiscriminant(mappedTrainImages1, YmapTrain1, numCategories, wordTable1);
     [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminant(mappedOutlierImages1, mu, sigma, priors, zeroCategories));
+    returnedParams.mu = mu;
+    returnedParams.sigma = sigma;
+    returnedParams.priors = priors;
 elseif strcmp(method, 'gaussianPdf')
     % Train Gaussian classifier
     disp('Training Gaussian classifier using Mixture of Gaussians PDF');
     [mu, sigma, priors] = trainGaussianDiscriminant(mappedTrainImages1, YmapTrain1, numCategories, wordTable1);
     [~, sortedOutlierIdxs] = sort(predictGaussianDiscriminantMin(mappedOutlierImages1, mu, sigma, zeroCategories));
+    returnedParams.mu = mu;
+    returnedParams.sigma = sigma;
+    returnedParams.priors = priors;
 elseif strcmp(method, 'loop')
     disp('Training LoOP model');
     knn = 20;
@@ -63,6 +69,10 @@ elseif strcmp(method, 'loop')
 %     bestLambdas = randi(4, 1, length(nonZeroCategories)) + 8;
     [ nplofAll, pdistAll ] = trainOutlierPriors(mappedTrainImages1, YmapTrain1, nonZeroCategories, size(topNeighborsTrain, 2), knn, bestLambdas);
     [~, sortedOutlierIdxs] = sort(calcOutlierPriors(mappedOutlierImages1, mappedTrainImages1, YmapTrain1, size(topNeighborsTrain, 2), nonZeroCategories, bestLambdas, knn, nplofAll, pdistAll ), 'descend');
+    returnedParams.nplofAll = nplofAll;
+    returnedParams.pdistAll = pdistAll;
+    returnedParams.knn = 20;
+    returnedParams.bestLambdas = bestLambdas;
 end
 
 end
