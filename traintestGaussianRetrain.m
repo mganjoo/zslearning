@@ -58,8 +58,13 @@ end
 
 if fullParams.oracle
     % Set up oracle prediction
-    sortedOutlierIdxs = cell2mat(arrayfun(@(x) find(YoutlierTrain == x), [zeroCategories nonZeroCategories], 'UniformOutput', false));
     nonZeros = find(ismember(YoutlierTrain, nonZeroCategories));
+    zeros = find(ismember(YoutlierTrain, zeroCategories));
+    unseenWordTable = wordTable(:, zeroCategories);
+    tDist = slmetric_pw(unseenWordTable, mappedOutlierImages(:, zeros), 'eucdist');
+    [~, sortedZ] = sort(tDist, 2);
+    sortedOutlierIdxs = [zeros(sortedZ(:)') nonZeros];
+%     sortedOutlierIdxs = cell2mat(arrayfun(@(x) find(YoutlierTrain == x), [zeroCategories nonZeroCategories], 'UniformOutput', false));
     guessedZeroLabels = YoutlierTrain;
     guessedZeroLabels(nonZeros) = zeroCategories(randi(length(zeroCategories), 1, length(nonZeros)));
 end
@@ -70,15 +75,15 @@ fprintf('%f fraction of the top 100 predicted outliers are not actually outliers
 disp('Training softmax features');
 
 % Cross validate
-cvParams = {{'lambda',              [1E-2, 1E-3, 1E-4]};   % regularization parameter
+cvParams = {{'lambda',              [1E-3]};   % regularization parameter
             {'lambdaOld',           [1, 1E-1]};   % regularization parameter for seen weights during change
             {'lambdaNew',           [1E-3]};   % regularization parameter for unseen weights during change
             {'numPretrainIter',     [100, 150]};
-            {'numSampleIter',       [2, 3]};
-            {'numTopOutliers',      [15, 20, 40]};
-            {'numSampledNonZeroShot', [2, 5, 10]};
-            {'retrainCount',        [5, 10, 20]};
-            {'outerRetrainCount',   [5, 10]};
+            {'numSampleIter',       [2]};
+            {'numTopOutliers',      [15, 20, 30]};
+            {'numSampledNonZeroShot', [5, 10]};
+            {'retrainCount',        [10]};
+            {'outerRetrainCount',   [10]};
             };
         
 if isfield(fullParams, 'fixedCvParams')

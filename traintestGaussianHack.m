@@ -44,9 +44,11 @@ trainParamsUnseen.wordDataset = fullParams.wordset;
 [thetaUnseen, trainParamsUnseen] = zeroShotTrain(trainParamsUnseen);
 save(sprintf('%s/thetaUnseenSoftmax.mat', outputPath), 'thetaUnseen', 'trainParamsUnseen');
 
+mapped = mapDoMap(XmapTrain, theta, trainParams);
+mappedTestImages = mapDoMap(testX, theta, trainParams);
+
 disp('Training Gaussian classifier using Mixture of Gaussians');
 % Train Gaussian classifier
-mapped = mapDoMap(XmapTrain, theta, trainParams);
 % [mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y, numCategories, wordTable);
 
 pp = struct('outlierOriginalSpace', false, 'topN', 140);
@@ -55,7 +57,6 @@ pp = struct('outlierOriginalSpace', false, 'topN', 140);
 sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, outlierParams.mu, outlierParams.sigma, outlierParams.priors, zeroCategories));
 
 % Test
-mappedTestImages = mapDoMap(testX, theta, trainParams);
 
 resolution = fullParams.resolution;
 gSeenAccuracies = zeros(1, resolution);
@@ -187,7 +188,7 @@ trainParamsCombined.allCategories = 1:numCategories;
 save(sprintf('%s/thetaCombined.mat', outputPath), 'thetaCombined', 'trainParamsCombined');
 combinedResult = softmaxDoEvaluate( testX, testY, label_names, thetaCombined, trainParamsCombined, true, zeroCategories );
 
-[~, bayesianResultCombined] = mapBayesianDoEvaluate(thetaCombined, thetaUnseen, ...
+[~, bayesianResultCombined] = mapBayesianDoEvaluateCombined(thetaCombined, thetaUnseen, ...
     theta, trainParamsCombined, trainParamsUnseen, trainParams, mapped, YmapTrain, testX, ...
     testY, outlierParams.bestLambdas, outlierParams.knn, outlierParams.nplofAll, outlierParams.pdistAll, ...
     outlierParams.numPerCat, zeroCategories, nonZeroCategories, label_names, true);
