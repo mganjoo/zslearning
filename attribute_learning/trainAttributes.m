@@ -1,4 +1,4 @@
-function [thetas, decodeInfos, trainParams] = trainAttributes(X, Y, attributes, assignments, trainParams)
+function [thetas, fullTrainParams] = trainAttributes(X, Y, attributes, assignments, trainParams)
 
 fields = {{'imageDataset',        'cifar10'};
           {'costFunction',        @softmaxCost}; % training cost function
@@ -28,7 +28,7 @@ globalStart = tic;
 numAttributes = length(attributes);
 numCategories = size(assignments, 2);
 thetas = cell(numCategories, 1);
-decodeInfos = cell(numCategories, 1);
+fullTrainParams = cell(numCategories, 1);
 
 if ~ismac && isunix && matlabpool('size') == 0
     numCores = feature('numCores');
@@ -39,11 +39,12 @@ if ~ismac && isunix && matlabpool('size') == 0
 end
 
 parfor i = 1:numAttributes
-    [ thetas{i}, decodeInfos{i} ] = initializeParameters(trainParams);
+    fullTrainParams{i} = trainParams;
+    [ thetas{i}, fullTrainParams{i}.decodeInfo ] = initializeParameters(fullTrainParams{i});
     fprintf('Training attribute %d: "%s"\n', i, attributes{i});
     assignmentsForY = normalizeAttributeValue(assignments(i, Y));
     dataToUse = struct('imgs', X, 'categories', assignmentsForY);
-    thetas{i} = trainLBFGS(trainParams, dataToUse, thetas{i});
+    thetas{i} = trainLBFGS(fullTrainParams{i}, dataToUse, thetas{i});
 end
 
 gtime = toc(globalStart);

@@ -13,5 +13,5 @@ Yvalid = trainY(:, v);
 
 load('attribute_learning/attribute_data.mat');
 trainParams = struct;
-[thetas, decodeInfos, trainParams] = trainAttributes(X, Y, attributes, assignments, trainParams);
+[thetas, trainParams] = trainAttributes(X, Y, attributes, assignments, trainParams);
 
