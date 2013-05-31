@@ -3,7 +3,7 @@ function [thetas, fullTrainParams] = trainAttributes(X, Y, attributes, assignmen
 fields = {{'imageDataset',        'cifar10'};
           {'costFunction',        @softmaxCost}; % training cost function
           {'lambda',              1E-3};         % regularization parameter
-          {'maxIter',             100};
+          {'maxIter',             20};
 };
    
 for i = 1:length(fields)
