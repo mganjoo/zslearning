@@ -50,7 +50,7 @@ mapped = mapDoMap(XmapTrain, theta, trainParams);
 % [mu, sigma, priors] = trainGaussianDiscriminant(mapped, Y, numCategories, wordTable);
 
 pp = struct('outlierOriginalSpace', false, 'topN', 140);
-[~, outlierParams] = doOutlierDetection('loop', XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, pp, zeroCategories);
+[~, outlierParams] = doOutlierDetection('gaussian', XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, pp, zeroCategories);
 
 sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, outlierParams.mu, outlierParams.sigma, outlierParams.priors, zeroCategories));
 
@@ -155,7 +155,7 @@ loopAccuracies = zeros(1, length(thresholds));
 
 pp = struct('outlierOriginalSpace', false, 'topN', 3000);
 [~, outlierParams] = doOutlierDetection('loop', XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, pp, zeroCategories);
-probs = calcOutlierPriors( mappedTestImages, mapped, YmapTrain, numTrainMapPerCat, nonZeroCategories, outlierParams.bestLambdas, outlierParams.knn, outlierParams.nplofAll, outlierParams.pdistAll );
+probs = calcOutlierPriors( mappedTestImages, mapped, YmapTrain, outlierParams.numPerCat, nonZeroCategories, outlierParams.bestLambdas, outlierParams.knn, outlierParams.nplofAll, outlierParams.pdistAll );
 for t = 1:length(thresholds)
     fprintf('Threshold %f: ', thresholds(t));
             [~, results] = anomalyDoEvaluate(thetaSeen, ...
@@ -171,8 +171,27 @@ end
 disp('Run Bayesian pipeline');
 [~, bayesianResult] = mapBayesianDoEvaluate(thetaSeen, thetaUnseen, ...
     theta, trainParamsSeen, trainParamsUnseen, trainParams, mapped, YmapTrain, testX, ...
-    testY, bestLambdas, knn, nplofAll, pdistAll, numTrainMapPerCat, zeroCategories, nonZeroCategories, label_names, true);
+    testY, outlierParams.bestLambdas, outlierParams.knn, outlierParams.nplofAll, outlierParams.pdistAll, ...
+    outlierParams.numPerCat, zeroCategories, nonZeroCategories, label_names, true);
+
+% Now run Bayesian pipeline where we recheck things classified as seen
+mappedOutlierImages = mapDoMap(XoutlierTrain, theta, trainParams);
+mappedTrainImages = mapDoMap(XmapTrain, theta, trainParams);
+guessedZeroLabels = zeroCategories(softmaxPredict( mappedOutlierImages, thetaUnseen, trainParamsUnseen ));
+pp = struct('outlierOriginalSpace', false, 'topN', 140);
+[sortedOutlierIdxs, ~] = doOutlierDetection('gaussian', XmapTrain, YmapTrain, XoutlierTrain, theta, trainParams, wordTable, pp, zeroCategories);
+trainParamsCombined.sortedOutlierIdxs = sortedOutlierIdxs;
+trainParamsCombined.nonZeroShotCategories = nonZeroCategories;
+trainParamsCombined.allCategories = 1:numCategories;
+[thetaCombined, trainParamsCombined] = combinedShotTrain(XoutlierTrain, YoutlierTrain, guessedZeroLabels, trainParamsCombined);
+save(sprintf('%s/thetaCombined.mat', outputPath), 'thetaCombined', 'trainParamsCombined');
+combinedResult = softmaxDoEvaluate( testX, testY, label_names, thetaCombined, trainParamsCombined, true, zeroCategories );
+
+[~, bayesianResultCombined] = mapBayesianDoEvaluate(thetaCombined, thetaUnseen, ...
+    theta, trainParamsCombined, trainParamsUnseen, trainParams, mapped, YmapTrain, testX, ...
+    testY, outlierParams.bestLambdas, outlierParams.knn, outlierParams.nplofAll, outlierParams.pdistAll, ...
+    outlierParams.numPerCat, zeroCategories, nonZeroCategories, label_names, true);
+
 
 save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'gSeenAccuracies', 'gUnseenAccuracies', 'gAccuracies', ...
-    'loopSeenAccuracies', 'loopUnseenAccuracies', 'loopAccuracies', 'pdfSeenAccuracies', 'pdfUnseenAccuracies', ...
-    'pdfAccuracies', 'bayesianResult');
+    'loopSeenAccuracies', 'loopUnseenAccuracies', 'bayesianResult', 'combinedResult', 'bayesianResultCombined');

@@ -10,15 +10,15 @@ fields = {{'wordDataset',         'acl'};            % type of embedding dataset
           {'imageDataset',        'cifar10'};        % CIFAR dataset type
           {'costFunction',        @softmaxCost}; % training cost function
           {'trainFunction',       @trainLBFGS}; % training function to use
-          {'lambda',              1E-3};   % regularization parameter
-          {'lambdaOld',           1E-3};   % regularization parameter
+          {'lambda',              1E-2};   % regularization parameter
+          {'lambdaOld',           1};   % regularization parameter
           {'lambdaNew',           1E-3};   % regularization parameter
-          {'numPretrainIter',     75};
+          {'numPretrainIter',     100};
           {'numSampleIter',       2};
           {'numTopOutliers',      15};
           {'numSampledNonZeroShot', 10};
-          {'retrainCount',        20};
-          {'outerRetrainCount',   20};
+          {'retrainCount',        10};
+          {'outerRetrainCount',   10};
           
 %           {'numReplicate',        0};     % one-shot replication
 %           {'dropoutFraction',     1};    % drop-out fraction

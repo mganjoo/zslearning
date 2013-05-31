@@ -73,6 +73,7 @@ elseif strcmp(method, 'loop')
     returnedParams.pdistAll = pdistAll;
     returnedParams.knn = 20;
     returnedParams.bestLambdas = bestLambdas;
+    returnedParams.numPerCat = size(topNeighborsTrain, 2);
 end
 
 end
