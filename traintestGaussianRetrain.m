@@ -11,7 +11,7 @@ fields = {{'dataset',       'cifar10'};
           {'outlierOriginalSpace', false};
           {'unseenMethod', 'softmax'};
           {'loadOldParams', true};
-          {'topN',          -1}; % set to -1 to disable
+          {'topN',          140}; % set to -1 to disable
           {'paramsPath', 'gauss_cifar10_acl_cat_truck_backup'};
           {'oracle',        false};
 };
