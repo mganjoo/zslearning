@@ -43,7 +43,7 @@ parfor i = 1:numAttributes
     fprintf('Training attribute %d: "%s"\n', i, attributes{i});
     assignmentsForY = normalizeAttributeValue(assignments(i, Y));
     dataToUse = struct('imgs', X, 'categories', assignmentsForY);
-    thetas{i} = trainLBFGS(trainParams, dataToUse, theta);
+    thetas{i} = trainLBFGS(trainParams, dataToUse, thetas{i});
 end
 
 gtime = toc(globalStart);
