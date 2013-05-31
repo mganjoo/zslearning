@@ -1,8 +1,7 @@
-function [thetas, trainParams] = trainAttributes(X, Y, attributes, assignments, trainParams)
+function [thetas, decodeInfos, trainParams] = trainAttributes(X, Y, attributes, assignments, trainParams)
 
 fields = {{'imageDataset',        'cifar10'};
           {'costFunction',        @softmaxCost}; % training cost function
-          {'trainFunction',       @trainLBFGS};  % training function to use
           {'lambda',              1E-3};         % regularization parameter
           {'maxIter',             100};
 };
@@ -23,20 +22,28 @@ trainParams.imageColumnSize = size(X, 1);
 disp('Initializing parameters');
 trainParams.inputSize = trainParams.imageColumnSize;
 trainParams.outputSize = 2;
-[ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);
 
 globalStart = tic;
-dataToUse.imgs = X;
 
 numAttributes = length(attributes);
 numCategories = size(assignments, 2);
 thetas = cell(numCategories, 1);
-for i = 1:numAttributes
+decodeInfos = cell(numCategories, 1);
+
+if ~ismac && isunix && matlabpool('size') == 0
+    numCores = feature('numCores');
+    if numCores > 8
+        numCores = 8;
+    end
+    matlabpool('open', numCores);
+end
+
+parfor i = 1:numAttributes
+    [ thetas{i}, decodeInfos{i} ] = initializeParameters(trainParams);
     fprintf('Training attribute %d: "%s"\n', i, attributes{i});
     assignmentsForY = normalizeAttributeValue(assignments(i, Y));
-    dataToUse.categories = assignmentsForY;
-    thetas{i} = trainParams.trainFunction(trainParams, dataToUse, theta);
-    [ theta, trainParams.decodeInfo ] = initializeParameters(trainParams);
+    dataToUse = struct('imgs', X, 'categories', assignmentsForY);
+    thetas{i} = trainLBFGS(trainParams, dataToUse, theta);
 end
 
 gtime = toc(globalStart);
