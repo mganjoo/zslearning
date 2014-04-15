@@ -15,15 +15,15 @@ numImages = length(trainY);
 numPerCategory = 3950;
 
 % Load other parameters
-t = load('map-goodParams/params_final.mat');
+t = load('parameter_archive/map-goodParams/params_final.mat');
 thetaMapping = t.theta;
 mapTrainParams = t.trainParams;
 
-t = load('map-softmaxGoodParams/params_final.mat');
+t = load('parameter_archive/map-softmaxGoodParams/params_final.mat');
 thetaSeenSoftmax = t.theta;
 seenSmTrainParams = t.trainParams;
 
-t = load('map-unseenSoftmaxGoodParams/params_final.mat');
+t = load('parameter_archive/map-unseenSoftmaxGoodParams/params_final.mat');
 thetaUnseenSoftmax = t.theta;
 unseenSmTrainParams = t.trainParams;
 

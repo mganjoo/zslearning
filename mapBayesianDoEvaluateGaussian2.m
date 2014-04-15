@@ -1,6 +1,6 @@
-function [ guessedCategories, results ] = mapBayesianDoEvaluateGaussian(thetaSeenSoftmax, thetaUnseenSoftmax, ...
+function [ guessedCategories, results ] = mapBayesianDoEvaluateGaussian2(thetaSeenSoftmax, thetaUnseenSoftmax, ...
     thetaMapping, seenSmTrainParams, unseenSmTrainParams, mapTrainParams, images, ...
-    categories, resolution, cutoff, mu, sigma, priors, zeroCategoryTypes, nonZeroCategoryTypes, categoryNames, doPrint)
+    categories, cutoffs, zeroCategoryTypes, nonZeroCategoryTypes, categoryNames, wordVectors, doPrint)
 
 addpath toolbox;
 
@@ -23,13 +23,16 @@ probUnseen = bsxfun(@rdivide,probUnseen,sum(probUnseen));
 probUnseenFull = zeros(numCategories, numImages);
 probUnseenFull(zeroCategoryTypes, :) = probUnseen;
 
-logprobabilities = predictGaussianDiscriminant(mappedImages, mu, sigma, priors, zeroCategoryTypes);
-% sortedLogprobabilities = sort(logprobabilities);
-% numPerIteration = floor(length(sortedLogprobabilities) / (resolution-1));
-% cutoff = sortedLogprobabilities((cutoffIdx-1)*numPerIteration+1);
+% Treat everything as seen first, then filter out cases
+% where things fall outside cutoff circles
+probs = ones(size(categories));
+for c_i = 1:length(nonZeroCategoryTypes)
+    currentCategory = nonZeroCategoryTypes(c_i);
+    centerVector = wordVectors(:, currentCategory);
+    dists = slmetric_pw(centerVector, mappedImages, 'eucdist');
+    probs(dists < cutoffs(currentCategory)) = 0; % falls in circle; is not unseen    
+end
 
-probs = zeros(size(categories));
-probs(logprobabilities < cutoff) = 1;
 finalProbs = bsxfun(@times, probSeenFull, 1 - probs) + bsxfun(@times, probUnseenFull, probs);
 [~, guessedCategories ] = max(finalProbs);
 

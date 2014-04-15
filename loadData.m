@@ -79,7 +79,7 @@ if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, '
     Y = trainY(t);
     Xvalidate = trainX(:, newV);
     Yvalidate = trainY(newV);
-    save(sprintf('%s/perm.mat', outputPath), 't', 'v');
+    save(sprintf('%s/perm.mat', outputPath), 't', 'newV');
 elseif strcmp(dataset, 'animals')
     if not(exist('skipLoad','var')) || skipLoad == false
         disp('Loading data');

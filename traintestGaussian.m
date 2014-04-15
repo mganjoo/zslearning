@@ -4,7 +4,7 @@ addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
 addpath costFunctions/;
 
-fields = {{'dataset',        'animals'};
+fields = {{'dataset',        'cifar10'};
           {'wordset',        'acl'};
           {'resolution',     11};
 };
