@@ -1,4 +1,4 @@
-%visualize_script 
+% t-SNE visualize_script 
 %WARNING: Needs lots of RAM !
 
 % uncomment depending on what you want to map:

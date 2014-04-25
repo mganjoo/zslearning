@@ -1,8 +1,4 @@
 % Load data (used in main.m)
-% The three datasets that this script supports are:
-% * CIFAR-10
-% * CIFAR-96 (CIFAR-100 with 4 unsupported categories removed)
-% * animals
 % Prerequisite: feature files for any dataset you'd
 % like to use must be present in image_data/features
 % (both train.mat and test.mat). There must also be a
@@ -91,62 +87,6 @@ if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, '
     Xvalidate = trainX(:, newV);
     Yvalidate = trainY(newV);
     save(sprintf('%s/perm.mat', outputPath), 't', 'newV');
-elseif strcmp(dataset, 'animals')
-    if not(exist('skipLoad','var')) || skipLoad == false
-        disp('Loading data');
-        load('image_data/images/animals/zero.mat');
-        zeroCategories = arrayfun(@(x) find(ismember(label_names, zero_label_names{x})), 1:length(zero_label_names));
-        
-        % Mark zeroCategories
-        numCategories = length(label_names);
-        nonZeroCategories = setdiff(1:numCategories, zeroCategories);
-
-        newTrain = [];
-        newV1 = [];
-        newTest = [];
-        for i = 1:length(nonZeroCategories)
-            currIdxs = find(trainY == nonZeroCategories(i));
-            tids = randperm(length(currIdxs));
-            train_id_cutoff = floor(0.9 * length(tids));
-            newTrain = [ newTrain currIdxs(tids(1:train_id_cutoff)) ];
-            newV1 = [ newV1 currIdxs(tids(train_id_cutoff+1:end)) ];
-            newTest = [ newTest find(testY == nonZeroCategories(i)) ];
-        end
-        
-        % add some unseen images to v for testing loOP model
-        newV2 = [];
-        for i = 1:length(zeroCategories)
-            currIdxs = find(testY == zeroCategories(i));
-            tids = randperm(length(currIdxs));
-            test_id_cutoff = floor(0.9 * length(tids));
-            newTest = [ newTest currIdxs(tids(1:test_id_cutoff)) ];
-            newV2 = [ newV2 currIdxs(tids(test_id_cutoff+1:end)) ];
-        end
-        newTrain = newTrain(randperm(length(newTrain)));
-        newTest = newTest(randperm(length(newTest)));
-        
-        X = trainX(:, newTrain);
-        Y = trainY(newTrain);
-        Xvalidate = [trainX(:, newV1) testX(:, newV2)];
-        Yvalidate = [trainY(newV1) testY(newV2)];
-        newV = randperm(length(Yvalidate));
-        Xvalidate = Xvalidate(:, newV);
-        Yvalidate = Yvalidate(newV);
-        testX = testX(:, newTest);
-        testY = testY(newTest);
-        zeroList = label_names(zeroCategories);
-        zeroStr = [sprintf('%s_',zeroList{1:end-1}),zeroList{end}];
-        numTrainPerCat = min(arrayfun(@(x) sum(Y == x), nonZeroCategories));
-        outputPath = sprintf('gauss_%s_%s_%s', dataset, wordset, zeroStr);
-
-        if not(exist(outputPath, 'dir'))
-            mkdir(outputPath);
-        end
-        
-        save([outputPath '/finalIds.mat'], 'newTrain', 'newTest', 'newV1', 'newV2');
-        disp('Zero categories:');
-        disp(zeroCategories);
-    end    
 end
 
 fprintf('num train: %d, num valid: %d, num test: %d\n', length(Y), length(Yvalidate), length(testY));

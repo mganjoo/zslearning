@@ -1,3 +1,5 @@
+% Extract features from CIFAR-10.
+% Read README for instructions.
 function [] = buildFeatures(dataset)
 
 OUTPUT_DIR = ['../image_data/features/' dataset];

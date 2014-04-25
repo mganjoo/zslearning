@@ -5,9 +5,12 @@ addpath ../costFunctions/;
 addpath ../toolbox/;
 addpath ../toolbox/minFunc/;
 
+% Load image data
 load('../image_data/features/cifar10/train.mat');
 load('../image_data/features/cifar10/test.mat');
+% Load word table
 load('../word_data/acl/cifar10/wordTable.mat', 'label_names');
+% Load attribute data
 load('attribute_data.mat');
 
 X = trainX(:, t1);
