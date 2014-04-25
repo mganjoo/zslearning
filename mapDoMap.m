@@ -1,3 +1,5 @@
+% Map image vectors into semantic space.
+
 function [ mapped ] = mapDoMap( images, theta, trainParams )
 
 addpath toolbox/;

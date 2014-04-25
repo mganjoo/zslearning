@@ -1,3 +1,5 @@
+% Load data (used in main.m)
+
 dataset = fullParams.dataset;
 wordset = fullParams.wordset;
 trainFrac = 1;
@@ -142,4 +144,4 @@ fprintf('num train: %d, num valid: %d, num test: %d\n', length(Y), length(Yvalid
 
 % At the end, we have X, Y, Xvalidate, Yvalidate, wordTable, outputPath,
 % numCategories, nonZeroCategories, zeroCategories, testX, testY,
-% label_names, numTrainPerCat
+% label_names, numTrainPerCat in the workspace

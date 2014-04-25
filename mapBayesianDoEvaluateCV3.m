@@ -30,6 +30,7 @@ cutoffs = zeros(length(nonZeroCategoryTypes) + length(zeroCategoryTypes));
 for c_i = 1:length(nonZeroCategoryTypes)
     currentCategory = nonZeroCategoryTypes(c_i);
     disp(['Current category: ' num2str(currentCategory)]);
+    % What vector do we treat as the center of the cluster?
     if (centerType == 0) % Centroid
         centerVector = mean(mappedImages(:, categories == currentCategory), 2);
     elseif (centerType == 1) % Word vector
@@ -38,30 +39,18 @@ for c_i = 1:length(nonZeroCategoryTypes)
     dists = slmetric_pw(centerVector, mappedImages, 'eucdist');
     currentCutoff = 0;
     bestAccuracy = 0;
-%     bestF1 = 0;
     while true
-        % treat everything outside the current cicle as of
-        % unseen
+        % treat everything outside the current cicle as of unseen
         guessedSeen = zeros(size(categories));
         guessedSeen(dists < currentCutoff) = 1;
         actualSeen = categories == currentCategory;
-%         probs = zeros(size(categories));
-%         probs(dists > currentCutoff) = 1;
-%         finalProbs = bsxfun(@times, probSeenFull, 1 - probs) + bsxfun(@times, probUnseenFull, probs);
-%         [~, guessedCategories ] = max(finalProbs);
 
         truePos = actualSeen == guessedSeen ;
-%         truePos = and(guessedCategories == categories, guessedCategories == currentCategory);
         results.accuracy = sum(truePos) / numImages;
-%         results.p = sum(truePos) / sum(guessedCategories == currentCategory);
-%         results.r = sum(truePos) / sum(categories == currentCategory);
-%         results.f1 = 2 * results.p * results.r / (results.p + results.r);
-%         if results.f1 < bestF1
         disp(results.accuracy);
         if results.accuracy < bestAccuracy
             break
         else
-    %         bestF1 = results.f1;
             bestAccuracy = results.accuracy;
             currentCutoff = currentCutoff + cutoffStep;
         end
