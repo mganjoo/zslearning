@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-DIRNAME=map-output
-mkdir -p $DIRNAME
-matlab -nodesktop -nodisplay 2>&1 | tee $DIRNAME/out-`date "+%Y-%m-%d-%H-%M-%S"`.log
