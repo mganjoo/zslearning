@@ -8,10 +8,14 @@ addpath toolbox/;
 addpath toolbox/minFunc/;
 addpath toolbox/pwmetric/;
 
+% BEGIN primary configurable parameters.
+% - dataset is the image set we're using (CIFAR-10)
+% - word set is the name of the folder within word_data
+% containing word vectors (see README for details).
 fields = {{'dataset',        'cifar10'};
           {'wordset',        'acl'};
-          {'resolution',     11};
 };
+% END primary configurable parameters.
 
 % Load existing model parameters, if they exist
 for i = 1:length(fields)
@@ -58,7 +62,7 @@ sortedLogprobabilities = sort(predictGaussianDiscriminant(mapped, mu, sigma, pri
 % Test
 mappedTestImages = mapDoMap(testX, theta, trainParams);
 
-resolution = fullParams.resolution;
+resolution = 11;
 gSeenAccuracies = zeros(1, resolution);
 gUnseenAccuracies = zeros(1, resolution);
 gAccuracies = zeros(1, resolution);
@@ -135,17 +139,17 @@ end
 save(sprintf('%s/bestLambdas.mat', outputPath), 'bestLambdas');
 
 disp('Run Bayesian pipeline for LoOP');
-[~, bayesianResult] = mapBayesianDoEvaluate(thetaSeen, thetaUnseen, ...
+[~, bayesianResult] = evaluateLoopBayesian(thetaSeen, thetaUnseen, ...
     theta, trainParamsSeen, trainParamsUnseen, trainParams, mapped, Y, testX, ...
     testY, bestLambdas, knn, nplofAll, pdistAll, numTrainPerCat, zeroCategories, nonZeroCategories, label_names, true);
 
 %%%%%%
 
-cutoffs = mapBayesianDoEvaluateCV3(thetaSeen, thetaUnseen, theta, trainParamsSeen, ...
+cutoffs = generateGaussianCutoffs(thetaSeen, thetaUnseen, theta, trainParamsSeen, ...
   trainParamsUnseen, trainParams, X, Y, wordTable, 0.05, 1, zeroCategories, nonZeroCategories);
 
 disp('Run Bayesian pipeline for Gaussian model');
-[ guessedCategories, results ] = mapBayesianDoEvaluateGaussian2(thetaSeenSoftmax, thetaUnseenSoftmax, ...
+[ guessedCategories, results ] = evaluateGaussianBayesian(thetaSeenSoftmax, thetaUnseenSoftmax, ...
     thetaMapping, seenSmTrainParams, unseenSmTrainParams, mapTrainParams, validX, ...
     validY, cutoffs, zeroCategories, nonZeroCategories, label_names, wordTable, true);
 
@@ -153,3 +157,8 @@ disp('Run Bayesian pipeline for Gaussian model');
 save(sprintf('%s/out_%s.mat', outputPath, zeroStr), 'gSeenAccuracies', 'gUnseenAccuracies', 'gAccuracies', ...
     'loopSeenAccuracies', 'loopUnseenAccuracies', 'loopAccuracies', 'pdfSeenAccuracies', 'pdfUnseenAccuracies', ...
     'pdfAccuracies', 'bayesianResult');
+
+% Plot graphs
+plot_unseen_bar_3
+plot_modelComparisons_4
+plot_randomConfusionWords_6

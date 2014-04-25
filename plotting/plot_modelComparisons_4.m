@@ -1,7 +1,5 @@
-% Plot comparison of Gaussian and LoOP model. (Figure 4 from Socher et al. paper)
-
-plotComparisons = function(gAccuracies, gSeenAccuracies, gUnseenAccuracies, ...
-    loopAccuracies, loopSeenAccuracies, loopUnseenAccuracies)
+% Plot: Figure 4 of Socher et al. paper (comparison of Gaussian and LoOP model).
+% 'gUnseenAccuracies' must be in workspace.
 
 set(gcf,'paperunits','centimeters')
 set(gcf,'papersize',[35,15]) % Desired outer dimensionsof figure
@@ -41,3 +39,8 @@ set(h_legend, 'FontSize', 16);
 set(h_xl, 'FontSize', 24);
 set(h_yl, 'FontSize', 24);
 hold off;
+
+% Save figure.
+filename_base = '../figures/modelComparisons';
+print('-dpdf', sprintf('%s.pdf', filename_base));
+print('-deps', sprintf('%s.eps', filename_base));

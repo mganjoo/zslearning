@@ -1,5 +1,5 @@
-addpath toolbox/pwmetric/;
-addpath toolbox;
+addpath ../toolbox/pwmetric/;
+addpath ../toolbox;
 
 IMAGES_PER_CATEGORY = 3;
 

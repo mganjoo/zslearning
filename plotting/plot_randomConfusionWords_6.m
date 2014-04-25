@@ -1,3 +1,4 @@
+% Figure 6 from Socher et al.
 % Generates confusion words not already present in the dataset.
 % Relevant section in paper: "6.7 Zero-Shot Classes with Distractor Words
 
@@ -74,3 +75,7 @@ hold off;
 set(gcf,'paperunits','centimeters')
 set(gcf,'papersize',[21,20]) % Desired outer dimensionsof figure
 set(gcf,'paperposition',[0,0,21,20]) % Place plot on figure
+
+filename_base = '../figures/randomConfusionWords';
+print('-dpdf', sprintf('%s.pdf', filename_base));
+print('-deps', sprintf('%s.eps', filename_base));

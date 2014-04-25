@@ -1,4 +1,12 @@
 % Load data (used in main.m)
+% The three datasets that this script supports are:
+% * CIFAR-10
+% * CIFAR-96 (CIFAR-100 with 4 unsupported categories removed)
+% * animals
+% Prerequisite: feature files for any dataset you'd
+% like to use must be present in image_data/features
+% (both train.mat and test.mat). There must also be a
+% wordTable.mat present in word_data/<wordset_name>/<dataset_name>.
 
 dataset = fullParams.dataset;
 wordset = fullParams.wordset;
@@ -11,6 +19,7 @@ if not(exist('skipLoad','var')) || skipLoad == false
     load(['word_data/' wordset '/' dataset '/wordTable.mat']);
 end
 
+% Split data
 if strcmp(dataset, 'cifar10') || strcmp(dataset, 'cifar96') || strcmp(dataset, 'cifar106')
     if strcmp(dataset, 'cifar10')
         TOTAL_NUM_TRAIN = 50000;
